@@ -1,0 +1,4 @@
+repository "Cus_SRP@pluto47@cloud.cn"
+  path "/"
+    smartbranch "/main" 
+     
