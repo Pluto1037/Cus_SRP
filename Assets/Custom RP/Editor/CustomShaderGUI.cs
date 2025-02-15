@@ -21,6 +21,15 @@ public class CustomShaderGUI : ShaderGUI
     Vector3 cylEnd;
     float cylRadius;
 
+    string[] options = new string[] { "Single", "Grid" };
+
+    // 网格状分布参数
+    int cylSelected;
+    float gridWidth;
+    float gridHeight;
+    int widthSegments;
+    int heightSegments;
+
     public override void OnGUI(
         MaterialEditor materialEditor, MaterialProperty[] properties
     )
@@ -32,19 +41,54 @@ public class CustomShaderGUI : ShaderGUI
         // 获取属性的原值
         Material targetMat = materialEditor.target as Material;
         string[] keyWords = targetMat.shaderKeywords;
-        showRT = keyWords.Contains("_RAY_MARCHING");
+        if (keyWords.Contains("_RAY_MARCHING"))
+        {
+            cylSelected = 0;
+            showRT = true;
+        }
+        else if (keyWords.Contains("_RAY_MARCHING_GRID"))
+        {
+            cylSelected = 1;
+            showRT = true;
+        }
+        else
+        {
+            showRT = false;
+        }
+        // showRT = keyWords.Contains("_RAY_MARCHING") || keyWords.Contains("_RAY_MARCHING_GRID");
         cylStart = FindProperty("_CylinderStart", properties, false).vectorValue;
         cylEnd = FindProperty("_CylinderEnd", properties, false).vectorValue;
         cylRadius = FindProperty("_CylinderRadius", properties, false).floatValue;
+        Vector3 gridWH = FindProperty("_GridWidthHeight", properties, false).vectorValue;
+        Vector3 gridWHSeg = FindProperty("_WidthHeightSegments", properties, false).vectorValue;
+        gridWidth = gridWH.x;
+        gridHeight = gridWH.y;
+        widthSegments = (int)gridWHSeg.x;
+        heightSegments = (int)gridWHSeg.y;
 
         EditorGUI.BeginChangeCheck();
         // 在顶部设置RM材质表达
         showRT = EditorGUILayout.ToggleLeft("Enable Ray Tracing Cylinder", showRT);
         if (showRT)
         {
-            cylStart = EditorGUILayout.Vector3Field("Cylinder Start", cylStart);
-            cylEnd = EditorGUILayout.Vector3Field("Cylinder End", cylEnd);
-            cylRadius = EditorGUILayout.FloatField("Cylinder Radius", cylRadius);
+            cylSelected = EditorGUILayout.Popup("Type", cylSelected, options);
+            switch (cylSelected)
+            {
+                case 0:
+                    cylStart = EditorGUILayout.Vector3Field("Cylinder Start", cylStart);
+                    cylEnd = EditorGUILayout.Vector3Field("Cylinder End", cylEnd);
+                    break;
+                case 1:
+                    gridWidth = Mathf.Max(0.1f, EditorGUILayout.FloatField("Grid Width", gridWidth));
+                    gridHeight = Mathf.Max(0.1f, EditorGUILayout.FloatField("Grid Height", gridHeight));
+                    widthSegments = Mathf.Max(1, EditorGUILayout.IntField("Width Segments", widthSegments));
+                    heightSegments = Mathf.Max(1, EditorGUILayout.IntField("Height Segments", heightSegments));
+                    break;
+                default:
+                    Debug.LogError("Unrecognized Option");
+                    break;
+            }
+            cylRadius = Mathf.Max(0, EditorGUILayout.FloatField("Cylinder Radius", cylRadius));
         }
         EditorGUILayout.Space();
 
@@ -72,10 +116,13 @@ public class CustomShaderGUI : ShaderGUI
 
     void SetCylinderRayTracing()
     {
-        SetProperty("_RayMarching", "_RAY_MARCHING", showRT);
+        SetProperty("_RayMarching", "_RAY_MARCHING", showRT && cylSelected == 0);
+        SetProperty("_RayMarchingGrid", "_RAY_MARCHING_GRID", showRT && cylSelected == 1);
         MaterialProperty cylinderStart = FindProperty("_CylinderStart", properties, false);
         MaterialProperty cylinderEnd = FindProperty("_CylinderEnd", properties, false);
         MaterialProperty cylinderRadius = FindProperty("_CylinderRadius", properties, false);
+        MaterialProperty gridWH = FindProperty("_GridWidthHeight", properties, false);
+        MaterialProperty gridWHSeg = FindProperty("_WidthHeightSegments", properties, false);
         if (cylinderStart != null)
         {
             cylinderStart.vectorValue = cylStart;
@@ -87,6 +134,14 @@ public class CustomShaderGUI : ShaderGUI
         if (cylinderRadius != null)
         {
             cylinderRadius.floatValue = cylRadius;
+        }
+        if (gridWH != null)
+        {
+            gridWH.vectorValue = new Vector3(gridWidth, gridHeight, 0);
+        }
+        if (gridWHSeg != null)
+        {
+            gridWHSeg.vectorValue = new Vector3(widthSegments, heightSegments, 0);
         }
     }
 

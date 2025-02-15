@@ -11,9 +11,12 @@ Shader "Custom RP/Lit"
 
         // Ray Marching材质
         [HideInInspector][Toggle(_RAY_MARCHING)] _RayMarching("Enable Ray Marching", Float) = 0 // Ray Marching开关
+        [HideInInspector][Toggle(_RAY_MARCHING_GRID)] _RayMarchingGrid("Enable Ray Marching Grid", Float) = 0
         [HideInInspector]_CylinderStart("Cylinder Start", Vector) = (0, 0.5, 0) // 圆柱体起始点
         [HideInInspector]_CylinderEnd("Cylinder End", Vector) = (0, -0.5, 0) // 圆柱体结束点
         [HideInInspector]_CylinderRadius("Cylinder Radius", Float) = 0.5 // 圆柱体半径
+        [HideInInspector]_GridWidthHeight("Grid Width Height", Vector) = (5, 5, 0) // 栅格长宽
+        [HideInInspector]_WidthHeightSegments("Width Height Segments", Vector) = (2, 2, 0) // 栅格分段数
         // _MaxSteps("MaxSteps", float) = 100 // 步进最大次数
         // _SurfDist("SurfDists", float) = 0.001 // 距离容差值
         // _MaxDist("MaxDist", float) = 100 // 步进的最远距离
@@ -57,7 +60,8 @@ Shader "Custom RP/Lit"
             Tags {
 				"LightMode" = "CustomLit"
 			}
-            Blend [_SrcBlend] [_DstBlend]
+            // 区分Alpha和颜色的混合方式
+            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha
             ZWrite [_ZWrite]
 
             HLSLPROGRAM
@@ -70,6 +74,7 @@ Shader "Custom RP/Lit"
             #pragma shader_feature _DETAIL_MAP // 是否使用细节贴图
 
             #pragma shader_feature _RAY_MARCHING // 是否RAY MARCHING材质
+            #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
 
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
@@ -95,6 +100,7 @@ Shader "Custom RP/Lit"
 			#pragma target 3.5
 			#pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
             #pragma shader_feature _RAY_MARCHING // 是否RAY MARCHING材质
+            #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
             #pragma multi_compile _ LOD_FADE_CROSSFADE
 			#pragma multi_compile_instancing
 			#pragma vertex ShadowCasterPassVertex

@@ -6,6 +6,7 @@ CBUFFER_START(UnityPerDraw)
 	float4x4 unity_WorldToObject;
     float4 unity_LODFade; // 开启批处理需要包含的值，LOD淡出
 	real4 unity_WorldTransformParams;
+	float4 unity_RenderingLayer; // 渲染层蒙版
 
 	real4 unity_LightData; // 灯光索引的相关数据
 	real4 unity_LightIndices[2]; // data的y分量记录灯光个数，最多4*2=8个

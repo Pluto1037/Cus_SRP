@@ -109,8 +109,8 @@ float4 BloomAddPassFragment (Varyings input) : SV_TARGET {
 	else {
 		lowRes = GetSource(input.screenUV).rgb;
 	}
-	float3 highRes = GetSource2(input.screenUV).rgb;
-	return float4(lowRes * _BloomIntensity + highRes, 1.0);
+	float4 highRes = GetSource2(input.screenUV);
+	return float4(lowRes * _BloomIntensity + highRes.rgb, highRes.a);
 }
 float4 BloomScatterPassFragment (Varyings input) : SV_TARGET {
 	float3 lowRes;
@@ -131,10 +131,10 @@ float4 BloomScatterFinalPassFragment (Varyings input) : SV_TARGET {
 	else {
 		lowRes = GetSource(input.screenUV).rgb;
 	}
-	float3 highRes = GetSource2(input.screenUV).rgb;
+	float4 highRes = GetSource2(input.screenUV);
 	// 补回散射光
-	lowRes += highRes - ApplyBloomThreshold(highRes);
-	return float4(lerp(highRes, lowRes, _BloomIntensity), 1.0);
+	lowRes += highRes.rgb - ApplyBloomThreshold(highRes.rgb);
+	return float4(lerp(highRes.rgb, lowRes, _BloomIntensity), highRes.a);
 }
 
 Varyings DefaultPassVertex (uint vertexID : SV_VertexID) {

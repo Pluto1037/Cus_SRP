@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [CreateAssetMenu(menuName = "Rendering/Custom Render Pipeline Asset")]
-public class CustomRenderPipelineAsset : RenderPipelineAsset
+public partial class CustomRenderPipelineAsset : RenderPipelineAsset
 {
     [SerializeField]
     bool allowHDR = true;

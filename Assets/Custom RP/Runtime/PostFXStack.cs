@@ -33,12 +33,17 @@ public partial class PostFXStack
     Camera camera;
     PostFXSettings settings;
 
+    static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
+
     const int maxBloomPyramidLevels = 16;
     int bloomPyramidId;
     bool useHDR;
     int colorLUTResolution;
     public bool IsActive => settings != null;
 
+    CameraSettings.FinalBlendMode finalBlendMode;
+
+    // 传入着色器的属性标识符
     int
         bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling"),
         bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"),
@@ -61,7 +66,9 @@ public partial class PostFXStack
         smhRangeId = Shader.PropertyToID("_SMHRange"),
         colorGradingLUTId = Shader.PropertyToID("_ColorGradingLUT"),
         colorGradingLUTParametersId = Shader.PropertyToID("_ColorGradingLUTParameters"),
-        colorGradingLUTInLogId = Shader.PropertyToID("_ColorGradingLUTInLogC");
+        colorGradingLUTInLogId = Shader.PropertyToID("_ColorGradingLUTInLogC"),
+        finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend"),
+        finalDstBlendId = Shader.PropertyToID("_FinalDstBlend");
 
     public PostFXStack()
     {
@@ -76,9 +83,10 @@ public partial class PostFXStack
 
     public void Setup(
         ScriptableRenderContext context, Camera camera, PostFXSettings settings,
-        bool useHDR, int colorLUTResolution
+        bool useHDR, int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode
     )
     {
+        this.finalBlendMode = finalBlendMode;
         this.colorLUTResolution = colorLUTResolution;
         this.useHDR = useHDR;
         this.context = context;
@@ -108,12 +116,33 @@ public partial class PostFXStack
     )
     {
         buffer.SetGlobalTexture(fxSourceId, from);
+        // SetRenderTarget会将视口重置为覆盖整个目标纹理
         buffer.SetRenderTarget(
             to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
         );
         buffer.DrawProcedural(
             Matrix4x4.identity, settings.Material, (int)pass,
             MeshTopology.Triangles, 3
+        );
+    }
+    void DrawFinal(RenderTargetIdentifier from)
+    {
+        buffer.SetGlobalFloat(finalSrcBlendId, (float)finalBlendMode.source);
+        buffer.SetGlobalFloat(finalDstBlendId, (float)finalBlendMode.destination);
+        buffer.SetGlobalTexture(fxSourceId, from);
+        buffer.SetRenderTarget(
+            BuiltinRenderTextureType.CameraTarget,
+            // 规避Tile-based GPU的渲染伪影
+            // 如果目标混合模式不为零，我们现在还需要始终加载目标缓冲区
+            finalBlendMode.destination == BlendMode.Zero && camera.rect == fullViewRect ?
+                RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load,
+            RenderBufferStoreAction.Store
+        );
+        // 设置视口来匹配相机的像素矩形
+        buffer.SetViewport(camera.pixelRect);
+        buffer.DrawProcedural(
+            Matrix4x4.identity, settings.Material,
+            (int)Pass.Final, MeshTopology.Triangles, 3
         );
     }
 
@@ -307,7 +336,8 @@ public partial class PostFXStack
         buffer.SetGlobalVector(colorGradingLUTParametersId,
             new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f)
         ); // 应用最终绘制的LUT参数
-        Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Final);
+        // Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Final);
+        DrawFinal(sourceId);
         buffer.ReleaseTemporaryRT(colorGradingLUTId);
     }
 }

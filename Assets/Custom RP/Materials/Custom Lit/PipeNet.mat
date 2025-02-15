@@ -85,13 +85,14 @@ Material:
     - _BumpScale: 1
     - _Clipping: 0
     - _Cutoff: 1
+    - _CylinderRadius: 0.5
     - _DetailAlbedo: 1
     - _DetailMapToggle: 0
     - _DetailNormalMapScale: 1
     - _DetailNormalScale: 1
     - _DetailSmoothness: 1
     - _DstBlend: 10
-    - _Fresnel: 1
+    - _Fresnel: 0.405
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -104,6 +105,8 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _PremulAlpha: 1
+    - _RayMarching: 0
+    - _RayMarchingGrid: 0
     - _ReceiveShadows: 1
     - _Shadows: 2
     - _Smoothness: 0.671
@@ -113,7 +116,11 @@ Material:
     - _UVSec: 0
     - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
-    - _Color: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _CylinderEnd: {r: 0, g: -0.5, b: 0, a: 0}
+    - _CylinderStart: {r: 0, g: 0.5, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GridWidthHeight: {r: 5, g: 5, b: 0, a: 0}
+    - _WidthHeightSegments: {r: 2, g: 2, b: 0, a: 0}
   m_BuildTextureStacks: []

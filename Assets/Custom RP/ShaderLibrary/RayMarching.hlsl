@@ -193,5 +193,59 @@ HitProperties CylinderHit(float3 rayOrigin, float3 rayDirection,
 
     return hitProp;
 }
+// 根据单根圆柱交点计算函数，计算命中矩阵的交点信息
+// Grid的中心默认在物体的0,0,0
+HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
+    float2 gridSize, float2 gridSeg, float cylinderRadius, float3 gridCenter)
+{
+    // 根据单根求交结果，计算整个Grid的交点信息
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    // 放置的起点与间隔
+    float xStart = -gridSize.x * 0.5;
+    float yStart = -gridSize.y * 0.5;
+    float xSize = gridSeg.x > 1 ? gridSize.x / (gridSeg.x - 1) : 0;
+    float ySize = gridSeg.y > 1 ? gridSize.y / (gridSeg.y - 1) : 0;
+
+    float minHitDist = FLT_MAX;
+    float tempDist = 0;
+    float3 cylinderStart, cylinderEnd;
+
+    // x方向遍历
+    for (int i = 0; i < int(gridSeg.x); i++)
+    {
+        cylinderStart = gridCenter + float3(xStart + i * xSize, cylinderRadius, yStart);
+        cylinderEnd = gridCenter + float3(xStart + i * xSize, cylinderRadius, -yStart);
+        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
+            cylinderStart, cylinderEnd, cylinderRadius);
+        if (hit.isHit) {
+            tempDist = length(hit.hitPoint - rayOrigin);
+            if (tempDist < minHitDist) {
+                minHitDist = tempDist;
+                hitProp = hit;
+            }
+        }
+    }
+    // y方向遍历，紧贴x方向下层
+    for (int i = 0; i < int(gridSeg.y); i++)
+    {
+        cylinderStart = gridCenter + float3(xStart, -cylinderRadius, yStart + i * ySize);
+        cylinderEnd = gridCenter + float3(-xStart, -cylinderRadius, yStart + i * ySize);
+        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
+            cylinderStart, cylinderEnd, cylinderRadius);
+        if (hit.isHit) {
+            tempDist = length(hit.hitPoint - rayOrigin);
+            if (tempDist < minHitDist) {
+                minHitDist = tempDist;
+                hitProp = hit;
+            }
+        }
+    }
+
+    return hitProp;
+}
 
 #endif

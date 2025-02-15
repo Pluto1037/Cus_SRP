@@ -18,7 +18,7 @@ MonoBehaviour:
   useSRPBatcher: 0
   useLightsPerObject: 1
   shadows:
-    maxDistance: 30
+    maxDistance: 80
     distanceFade: 0.15
     directional:
       atlasSize: 2048
@@ -32,5 +32,5 @@ MonoBehaviour:
     other:
       atlasSize: 2048
       filter: 3
-  postFXSettings: {fileID: 11400000, guid: 84b5dcf33fb723f419640f2ba5ade340, type: 2}
+  postFXSettings: {fileID: 0}
   colorLUTResolution: 16

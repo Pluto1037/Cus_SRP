@@ -17,6 +17,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
     UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor)
 	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
+    UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite)
 	UNITY_DEFINE_INSTANCED_PROP(float, _Metallic)
     UNITY_DEFINE_INSTANCED_PROP(float, _Occlusion)
 	UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness)
@@ -30,6 +31,9 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float4, _CylinderStart)
     UNITY_DEFINE_INSTANCED_PROP(float4, _CylinderEnd)
     UNITY_DEFINE_INSTANCED_PROP(float, _CylinderRadius)
+    // Grid
+    UNITY_DEFINE_INSTANCED_PROP(float4, _GridWidthHeight)
+    UNITY_DEFINE_INSTANCED_PROP(float4, _WidthHeightSegments)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxSteps)
     // UNITY_DEFINE_INSTANCED_PROP(float, _SurfDist)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxDist)
@@ -152,6 +156,10 @@ float3 GetNormalTS (InputConfig c) {
 	return normal;
 }
 
+float GetFinalAlpha (float alpha) {
+	return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
+}
+
 // float GetMaxSteps (InputConfig c) {
 //     return INPUT_PROP(_MaxSteps);
 // }
@@ -170,5 +178,10 @@ float3 GetCylinderEnd (InputConfig c) {
 float GetCylinderRadius (InputConfig c) {
     return INPUT_PROP(_CylinderRadius);
 }
-
+float2 GetGridWidthHeight (InputConfig c) {
+    return INPUT_PROP(_GridWidthHeight).xy;
+}
+float2 GetWidthHeightSegments (InputConfig c) {
+    return INPUT_PROP(_WidthHeightSegments).xy;
+}
 #endif

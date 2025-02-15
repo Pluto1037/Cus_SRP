@@ -121,6 +121,22 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		input.positionWS = cylinderHitProp.hitPoint;
 		input.normalWS = cylinderHitProp.hitNormal; 
 	#endif
+	#if defined(_RAY_MARCHING_GRID)
+		float3 rayOrigin = _WorldSpaceCameraPos;		
+		float3 rayDirection = normalize(input.positionWS - rayOrigin);
+		HitProperties gridHitProp = GridHit(
+			rayOrigin, rayDirection, 
+			GetGridWidthHeight(config),
+			GetWidthHeightSegments(config), 
+			GetCylinderRadius(config),
+			TransformObjectToWorld(float3(0, 0, 0))
+		);
+		if(!gridHitProp.isHit)
+			discard;
+		// 启用RayMarching后，覆盖世界坐标和法线
+		input.positionWS = gridHitProp.hitPoint;
+		input.normalWS = gridHitProp.hitNormal;
+	#endif
 	// -------------------------------------------
 
 	Surface surface;
@@ -150,6 +166,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 	surface.smoothness = GetSmoothness(config);
 	surface.fresnelStrength = GetFresnel(config);
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0); // 根据屏幕空间中的XY位置生成旋转平铺的抖动图案
+	surface.renderingLayerMask = asuint(unity_RenderingLayer.x); // 利用内部函数完成从float到uint的转换
 
 	#if defined(_PREMULTIPLY_ALPHA)
 		BRDF brdf = GetBRDF(surface, true);
@@ -160,7 +177,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 	GI gi = GetGI(GI_FRAGMENT_DATA(input), surface, brdf);
 	float3 color = GetLighting(surface, brdf, gi);
 	color += GetEmission(config);
-	return float4(color, surface.alpha);
+	return float4(color, GetFinalAlpha(surface.alpha));
 }
 
 #endif

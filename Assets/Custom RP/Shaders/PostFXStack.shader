@@ -121,6 +121,9 @@ Shader "Hidden/Custom RP/Post FX Stack" {
         Pass {
 			Name "Final"
 			
+			// 使分层相机可以透明背景叠层
+			Blend [_FinalSrcBlend] [_FinalDstBlend]
+			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
