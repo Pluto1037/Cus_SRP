@@ -7,7 +7,7 @@ public class PostFXSettings : ScriptableObject
     [SerializeField]
     Shader shader = default;
     [NonSerialized]
-    Material material;
+    Material material; // 利用Unity的Material作为后处理材质载体
     public Material Material
     {
         get
@@ -24,6 +24,8 @@ public class PostFXSettings : ScriptableObject
     [Serializable]
     public struct BloomSettings
     {
+        public bool ignoreRenderScale;
+
         [Range(0f, 16f)]
         public int maxIterations;
 

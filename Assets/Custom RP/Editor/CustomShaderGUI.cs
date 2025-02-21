@@ -56,15 +56,18 @@ public class CustomShaderGUI : ShaderGUI
             showRT = false;
         }
         // showRT = keyWords.Contains("_RAY_MARCHING") || keyWords.Contains("_RAY_MARCHING_GRID");
-        cylStart = FindProperty("_CylinderStart", properties, false).vectorValue;
-        cylEnd = FindProperty("_CylinderEnd", properties, false).vectorValue;
-        cylRadius = FindProperty("_CylinderRadius", properties, false).floatValue;
-        Vector3 gridWH = FindProperty("_GridWidthHeight", properties, false).vectorValue;
-        Vector3 gridWHSeg = FindProperty("_WidthHeightSegments", properties, false).vectorValue;
-        gridWidth = gridWH.x;
-        gridHeight = gridWH.y;
-        widthSegments = (int)gridWHSeg.x;
-        heightSegments = (int)gridWHSeg.y;
+        if (showRT)
+        {
+            cylStart = FindProperty("_CylinderStart", properties, false).vectorValue;
+            cylEnd = FindProperty("_CylinderEnd", properties, false).vectorValue;
+            cylRadius = FindProperty("_CylinderRadius", properties, false).floatValue;
+            Vector3 gridWH = FindProperty("_GridWidthHeight", properties, false).vectorValue;
+            Vector3 gridWHSeg = FindProperty("_WidthHeightSegments", properties, false).vectorValue;
+            gridWidth = gridWH.x;
+            gridHeight = gridWH.y;
+            widthSegments = (int)gridWHSeg.x;
+            heightSegments = (int)gridWHSeg.y;
+        }
 
         EditorGUI.BeginChangeCheck();
         // 在顶部设置RM材质表达

@@ -22,7 +22,7 @@ struct Attributes {
 };
 
 struct Varyings {
-	float4 positionCS : SV_POSITION;
+	float4 positionCS_SS : SV_POSITION;
 	float2 baseUV : VAR_BASE_UV;
 	#if defined(_RAY_MARCHING)
 		float3 positionWS : VAR_POSITION; // 世界空间位置
@@ -40,7 +40,7 @@ Varyings ShadowCasterPassVertex (Attributes input) {
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(positionWS);
+	output.positionCS_SS = TransformWorldToHClip(positionWS);
 
 	#if defined(_RAY_MARCHING)
 		output.positionWS = positionWS;
@@ -52,12 +52,12 @@ Varyings ShadowCasterPassVertex (Attributes input) {
 	// 当物体在阴影贴图裁剪空间后时，将其压缩在近平面上来生成阴影
 	if (_ShadowPancaking) {
 		#if UNITY_REVERSED_Z
-			output.positionCS.z = min(
-				output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE
+			output.positionCS_SS.z = min(
+				output.positionCS_SS.z, output.positionCS_SS.w * UNITY_NEAR_CLIP_VALUE
 			);
 		#else
-			output.positionCS.z = max(
-				output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE
+			output.positionCS_SS.z = max(
+				output.positionCS_SS.z, output.positionCS_SS.w * UNITY_NEAR_CLIP_VALUE
 			);
 		#endif
 	}
@@ -70,9 +70,11 @@ Varyings ShadowCasterPassVertex (Attributes input) {
 float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 	UNITY_SETUP_INSTANCE_ID(input);
 
-	ClipLOD(input.positionCS.xy, unity_LODFade.x);
+	// ClipLOD(input.positionCS.xy, unity_LODFade.x);
 
-	InputConfig config = GetInputConfig(input.baseUV);
+	InputConfig config = GetInputConfig(input.positionCS_SS, input.baseUV);
+
+	ClipLOD(config.fragment, unity_LODFade.x);
 
 	// ---------------RAY MARCHING----------------
 	// 在表面模型前计算RayMarching材质并返回结果
@@ -90,7 +92,7 @@ float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 			GetCylinderRadius(config)
 			);
 		if(cylinderHitProp.isHit) {
-			input.positionCS = TransformWorldToHClip(cylinderHitProp.hitPoint);
+			input.positionCS_SS = TransformWorldToHClip(cylinderHitProp.hitPoint);
 		}
 		else	discard;
 	#endif
@@ -109,7 +111,7 @@ float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 			TransformObjectToWorld(float3(0, 0, 0))
 		);
 		if(gridHitProp.isHit) {
-			input.positionCS = TransformWorldToHClip(gridHitProp.hitPoint);
+			input.positionCS_SS = TransformWorldToHClip(gridHitProp.hitPoint);
 		}
 		else	discard;
 	#endif
@@ -119,11 +121,11 @@ float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 	#if defined(_SHADOWS_CLIP)
 		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
 	#elif defined(_SHADOWS_DITHER)
-		float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+		float dither = InterleavedGradientNoise(input.positionCS_SS.xy, 0);
 		clip(base.a - dither);
 	#endif
 
-	return input.positionCS.z;
+	return input.positionCS_SS.z;
 }
 
 #endif

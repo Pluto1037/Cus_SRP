@@ -10,6 +10,27 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 		#include "PostFXStackPasses.hlsl"
 		ENDHLSL
 
+		Pass {
+			Name "Apply Color Grading"
+			
+			// 使分层相机可以透明背景叠层
+			Blend [_FinalSrcBlend] [_FinalDstBlend]
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ApplyColorGradingPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Apply Color Grading With Luma"
+
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ApplyColorGradingWithLumaPassFragment
+			ENDHLSL
+		}
         Pass {
 			Name "Bloom Add"
 			
@@ -117,17 +138,45 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#pragma vertex DefaultPassVertex
 				#pragma fragment ColorGradingReinhardPassFragment
 			ENDHLSL
-		}
-        Pass {
-			Name "Final"
+		}        
+		Pass {
+			// 引入HDR后，缩放后的Buffer像素间的插值会导致出现意料之外的压缩呢
+			// 在LDR中进行缩放
+			Name "Final Rescale"
 			
-			// 使分层相机可以透明背景叠层
 			Blend [_FinalSrcBlend] [_FinalDstBlend]
 			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment FinalPassFragment
+				#pragma fragment FinalPassFragmentRescale
+			ENDHLSL
+		}
+		Pass {
+			Name "FXAA"
+
+			Blend [_FinalSrcBlend] [_FinalDstBlend]
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment FXAAPassFragment
+				#pragma multi_compile _ FXAA_QUALITY_MEDIUM FXAA_QUALITY_LOW
+				#include "FXAAPass.hlsl"
+			ENDHLSL
+		}
+		Pass {
+			Name "FXAA With Luma"
+
+			Blend [_FinalSrcBlend] [_FinalDstBlend]
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment FXAAPassFragment
+				#pragma multi_compile _ FXAA_QUALITY_MEDIUM FXAA_QUALITY_LOW
+				#define FXAA_ALPHA_CONTAINS_LUMA
+				#include "FXAAPass.hlsl"
 			ENDHLSL
 		}
 	}

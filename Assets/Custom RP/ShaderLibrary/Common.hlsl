@@ -24,6 +24,22 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 
+SAMPLER(sampler_linear_clamp);
+SAMPLER(sampler_point_clamp);
+
+bool IsOrthographicCamera () {
+	return unity_OrthoParams.w;
+}
+float OrthographicDepthBufferToLinear (float rawDepth) {
+	#if UNITY_REVERSED_Z
+		rawDepth = 1.0 - rawDepth;
+	#endif
+	return (_ProjectionParams.z - _ProjectionParams.y) * rawDepth + _ProjectionParams.y;
+}
+
+
+#include "Fragment.hlsl"
+
 // 平方函数
 float Square (float v) {
 	return v * v;
@@ -34,9 +50,9 @@ float DistanceSquared(float3 pA, float3 pB) {
 }
 
 // 混合LOD
-void ClipLOD (float2 positionCS, float fade) {
+void ClipLOD (Fragment fragment, float fade) {
 	#if defined(LOD_FADE_CROSSFADE)
-		float dither = InterleavedGradientNoise(positionCS.xy, 0); // 与半透明阴影相同的模式
+		float dither = InterleavedGradientNoise(fragment.positionSS, 0); // 与半透明阴影相同的模式
 		clip(fade + (fade < 0.0 ? dither : -dither));
 	#endif
 }

@@ -1,0 +1,54 @@
+"filename", "language", "JSON", "Properties", "Markdown", "Shaderlab", "C#", "comment", "blank", "total"
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Components\CustomRenderPipelineCamera.cs", "C#", 0, 0, 0, 0, 8, 0, 3, 11
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Components\MeshBall.cs", "C#", 0, 0, 0, 0, 73, 4, 8, 85
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Components\MeshPipe.cs", "C#", 0, 0, 0, 0, 60, 17, 8, 85
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Components\PerObjectMaterialProperties.cs", "C#", 0, 0, 0, 0, 37, 0, 7, 44
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Editor\CustomLightEditor.cs", "C#", 0, 0, 0, 0, 35, 2, 3, 40
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Editor\CustomShaderGUI.cs", "C#", 0, 0, 0, 0, 310, 5, 20, 335
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Editor\RenderingLayerMaskDrawer.cs", "C#", 0, 0, 0, 0, 39, 1, 1, 41
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CameraBufferSettings.cs", "C#", 0, 0, 0, 0, 18, 0, 5, 23
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CameraRenderer.Editor.cs", "C#", 0, 0, 0, 0, 86, 1, 11, 98
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CameraRenderer.cs", "C#", 0, 0, 0, 0, 327, 7, 35, 369
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CameraSettings.cs", "C#", 0, 0, 0, 0, 36, 3, 14, 53
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CustomRenderPipeline.Editor.cs", "C#", 0, 0, 0, 0, 60, 1, 7, 68
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CustomRenderPipeline.cs", "C#", 0, 0, 0, 0, 54, 0, 7, 61
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CustomRenderPipelineAsset.Editor.cs", "C#", 0, 0, 0, 0, 15, 0, 5, 20
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\CustomRenderPipelineAsset.cs", "C#", 0, 0, 0, 0, 35, 0, 7, 42
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\Lighting.cs", "C#", 0, 0, 0, 0, 182, 6, 16, 204
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\PostFXSettings.cs", "C#", 0, 0, 0, 0, 135, 2, 22, 159
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\PostFXStack.Editor.cs", "C#", 0, 0, 0, 0, 18, 0, 5, 23
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\PostFXStack.cs", "C#", 0, 0, 0, 0, 367, 25, 29, 421
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\ReinterpretExtensions.cs", "C#", 0, 0, 0, 0, 18, 2, 2, 22
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\RenderingLayerMaskFieldAttribute.cs", "C#", 0, 0, 0, 0, 2, 0, 1, 3
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\ShadowSettings.cs", "C#", 0, 0, 0, 0, 59, 1, 13, 73
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Runtime\Shadows.cs", "C#", 0, 0, 0, 0, 473, 45, 42, 560
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\BRDF.hlsl", "Shaderlab", 0, 0, 0, 51, 0, 9, 10, 70
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Common.hlsl", "Shaderlab", 0, 0, 0, 56, 0, 6, 14, 76
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Fragment.hlsl", "Shaderlab", 0, 0, 0, 29, 0, 1, 6, 36
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\GI.hlsl", "Shaderlab", 0, 0, 0, 116, 0, 6, 10, 132
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Light.hlsl", "Shaderlab", 0, 0, 0, 83, 0, 4, 8, 95
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Lighting.hlsl", "Shaderlab", 0, 0, 0, 40, 0, 6, 9, 55
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\RayMarching.hlsl", "Shaderlab", 0, 0, 0, 187, 0, 38, 28, 253
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Shadows.hlsl", "Shaderlab", 0, 0, 0, 277, 0, 17, 25, 319
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\Surface.hlsl", "Shaderlab", 0, 0, 0, 18, 0, 1, 2, 21
+"d:\_vs project\Cus_SRP\Assets\Custom RP\ShaderLibrary\UnityInput.hlsl", "Shaderlab", 0, 0, 0, 42, 0, 4, 6, 52
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\CameraRenderer.shader", "Shaderlab", 0, 0, 0, 30, 0, 0, 8, 38
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\CameraRendererPasses.hlsl", "Shaderlab", 0, 0, 0, 30, 0, 0, 6, 36
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\FXAAPass.hlsl", "Shaderlab", 0, 0, 0, 13, 0, 3, 3, 19
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\Lit.shader", "Shaderlab", 0, 0, 0, 109, 0, 10, 14, 133
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\LitInput.hlsl", "Shaderlab", 0, 0, 0, 143, 0, 20, 26, 189
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\LitPass.hlsl", "Shaderlab", 0, 0, 0, 125, 0, 38, 22, 185
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\MetaPass.hlsl", "Shaderlab", 0, 0, 0, 47, 0, 0, 7, 54
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\PostFXStack.shader", "Shaderlab", 0, 0, 0, 154, 0, 3, 24, 181
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\PostFXStackPasses.hlsl", "Shaderlab", 0, 0, 0, 270, 0, 12, 12, 294
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\ShadowCasterPass.hlsl", "Shaderlab", 0, 0, 0, 97, 0, 15, 19, 131
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\UICustomBlending.shader", "Shaderlab", 0, 0, 0, 87, 0, 0, 12, 99
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\Unlit.shader", "Shaderlab", 0, 0, 0, 62, 0, 1, 8, 71
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\UnlitInput.hlsl", "Shaderlab", 0, 0, 0, 98, 0, 1, 15, 114
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\UnlitParticles.shader", "Shaderlab", 0, 0, 0, 67, 0, 1, 10, 78
+"d:\_vs project\Cus_SRP\Assets\Custom RP\Shaders\UnlitPass.hlsl", "Shaderlab", 0, 0, 0, 70, 0, 19, 10, 99
+"d:\_vs project\Cus_SRP\Packages\manifest.json", "JSON", 42, 0, 0, 0, 0, 0, 1, 43
+"d:\_vs project\Cus_SRP\Packages\packages-lock.json", "JSON", 384, 0, 0, 0, 0, 0, 1, 385
+"d:\_vs project\Cus_SRP\README.md", "Markdown", 0, 0, 8, 0, 0, 0, 7, 15
+"d:\_vs project\Cus_SRP\ignore.conf", "Properties", 0, 60, 0, 0, 0, 0, 1, 61
+"Total", "-", 426, 60, 8, 2301, 2447, 337, 595, 6174

@@ -10,8 +10,8 @@ struct Varyings {
 };
 
 TEXTURE2D(_PostFXSource);
-TEXTURE2D(_PostFXSource2);
-SAMPLER(sampler_linear_clamp);
+TEXTURE2D(_PostFXSource2); // 用于Bloom的高分辨率纹理
+// SAMPLER(sampler_linear_clamp);
 float4 GetSource(float2 screenUV) {
     // 规避自动MIPMAP
 	return SAMPLE_TEXTURE2D_LOD(_PostFXSource, sampler_linear_clamp, screenUV, 0);
@@ -31,6 +31,26 @@ float4 GetSourceBicubic (float2 screenUV) {
 		TEXTURE2D_ARGS(_PostFXSource, sampler_linear_clamp), screenUV,
 		_PostFXSource_TexelSize.zwxy, 1.0, 0.0
 	);
+}
+
+Varyings DefaultPassVertex (uint vertexID : SV_VertexID) {
+	Varyings output;
+	output.positionCS = float4(
+		vertexID <= 1 ? -1.0 : 3.0,
+		vertexID == 1 ? 3.0 : -1.0,
+		0.0, 1.0
+	);
+	output.screenUV = float2(
+		vertexID <= 1 ? 0.0 : 2.0,
+		vertexID == 1 ? 2.0 : 0.0
+	);
+    if (_ProjectionParams.x < 0.0) {
+		output.screenUV.y = 1.0 - output.screenUV.y;
+	}
+	return output;
+}
+float4 CopyPassFragment (Varyings input) : SV_TARGET {
+	return GetSource(input.screenUV);
 }
 
 float4 _BloomThreshold;
@@ -135,26 +155,6 @@ float4 BloomScatterFinalPassFragment (Varyings input) : SV_TARGET {
 	// 补回散射光
 	lowRes += highRes.rgb - ApplyBloomThreshold(highRes.rgb);
 	return float4(lerp(highRes.rgb, lowRes, _BloomIntensity), highRes.a);
-}
-
-Varyings DefaultPassVertex (uint vertexID : SV_VertexID) {
-	Varyings output;
-	output.positionCS = float4(
-		vertexID <= 1 ? -1.0 : 3.0,
-		vertexID == 1 ? 3.0 : -1.0,
-		0.0, 1.0
-	);
-	output.screenUV = float2(
-		vertexID <= 1 ? 0.0 : 2.0,
-		vertexID == 1 ? 2.0 : 0.0
-	);
-    if (_ProjectionParams.x < 0.0) {
-		output.screenUV.y = 1.0 - output.screenUV.y;
-	}
-	return output;
-}
-float4 CopyPassFragment (Varyings input) : SV_TARGET {
-	return GetSource(input.screenUV);
 }
 
 float4 _ColorAdjustments;
@@ -269,10 +269,26 @@ float3 ApplyColorGradingLUT (float3 color) {
 		_ColorGradingLUTParameters.xyz
 	);
 }
-float4 FinalPassFragment (Varyings input) : SV_TARGET {
+float4 ApplyColorGradingPassFragment (Varyings input) : SV_TARGET {
 	float4 color = GetSource(input.screenUV);
 	color.rgb = ApplyColorGradingLUT(color.rgb);
 	return color;
+}
+float4 ApplyColorGradingWithLumaPassFragment (Varyings input) : SV_TARGET {
+	float4 color = GetSource(input.screenUV);
+	color.rgb = ApplyColorGradingLUT(color.rgb);
+	color.a = sqrt(Luminance(color.rgb)); // 在alpha通道存储Luma亮度，用于fxaa
+	return color;
+}
+
+bool _CopyBicubic;
+float4 FinalPassFragmentRescale (Varyings input) : SV_TARGET {
+	if (_CopyBicubic) {
+		return GetSourceBicubic(input.screenUV);
+	}
+	else {
+		return GetSource(input.screenUV);
+	}
 }
 
 #endif

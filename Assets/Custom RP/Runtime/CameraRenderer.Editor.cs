@@ -30,6 +30,11 @@ partial class CameraRenderer
     {
         if (Handles.ShouldRenderGizmos())
         {
+            if (useIntermediateBuffer)
+            {
+                Draw(depthAttachmentId, BuiltinRenderTextureType.CameraTarget, true);
+                ExecuteBuffer();
+            }
             context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
         }
     }
@@ -38,6 +43,11 @@ partial class CameraRenderer
     {
         if (Handles.ShouldRenderGizmos())
         {
+            if (postFXStack.IsActive)
+            {
+                Draw(depthAttachmentId, BuiltinRenderTextureType.CameraTarget, true);
+                ExecuteBuffer();
+            }
             context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
         }
     }
@@ -70,6 +80,7 @@ partial class CameraRenderer
         if (camera.cameraType == CameraType.SceneView)
         {
             ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+            useScaledRendering = false; // 编辑窗口取消缩放渲染
         }
     }
 

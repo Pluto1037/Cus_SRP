@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 public partial class CustomRenderPipeline : RenderPipeline
 {
-    bool allowHDR;
+    CameraBufferSettings cameraBufferSettings;
     bool useDynamicBatching, useGPUInstancing, useLightsPerObject;
 
     ShadowSettings shadowSettings;
@@ -12,13 +12,13 @@ public partial class CustomRenderPipeline : RenderPipeline
     int colorLUTResolution;
 
     public CustomRenderPipeline(
-        bool allowHDR,
+        CameraBufferSettings cameraBufferSettings,
         bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
         bool useLightsPerObject, ShadowSettings shadowSettings,
-        PostFXSettings postFXSettings, int colorLUTResolution
+        PostFXSettings postFXSettings, int colorLUTResolution, Shader cameraRendererShader
     )
     {
-        this.allowHDR = allowHDR;
+        this.cameraBufferSettings = cameraBufferSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         this.useLightsPerObject = useLightsPerObject;
@@ -27,10 +27,11 @@ public partial class CustomRenderPipeline : RenderPipeline
         this.colorLUTResolution = colorLUTResolution;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
         GraphicsSettings.lightsUseLinearIntensity = true; // 将光照强度转换为线性空间
+        renderer = new CameraRenderer(cameraRendererShader); // 分配着色器至相机渲染器
 
         InitializeForEditor();
     }
-    CameraRenderer renderer = new CameraRenderer();
+    CameraRenderer renderer;
     protected override void Render(
         ScriptableRenderContext context, Camera[] cameras
     )
@@ -43,11 +44,18 @@ public partial class CustomRenderPipeline : RenderPipeline
         for (int i = 0; i < cameras.Count; i++)
         {
             renderer.Render(
-                context, cameras[i], allowHDR,
+                context, cameras[i], cameraBufferSettings,
                 useDynamicBatching, useGPUInstancing, useLightsPerObject,
                 shadowSettings, postFXSettings, colorLUTResolution
             );
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        DisposeForEditor();
+        renderer.Dispose();
     }
 
 }

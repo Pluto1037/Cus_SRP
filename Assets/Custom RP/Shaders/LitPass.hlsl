@@ -48,7 +48,7 @@ struct Attributes {
 
 // 让顶点着色器同时输出位置和索引
 struct Varyings {
-	float4 positionCS : SV_POSITION; // 裁剪空间位置
+	float4 positionCS_SS : SV_POSITION; // 裁剪空间位置
 	float3 positionWS : VAR_POSITION; // 世界空间位置
 	float3 normalWS : VAR_NORMAL;
 	#if defined(_NORMAL_MAP)
@@ -66,7 +66,7 @@ Varyings LitPassVertex (Attributes input) {
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
 	TRANSFER_GI_DATA(input, output);
 	output.positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(output.positionWS);
+	output.positionCS_SS = TransformWorldToHClip(output.positionWS);
 	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 
 	#if defined(_NORMAL_MAP)
@@ -86,9 +86,11 @@ Varyings LitPassVertex (Attributes input) {
 
 float4 LitPassFragment (Varyings input) : SV_TARGET {
 	UNITY_SETUP_INSTANCE_ID(input);
-	ClipLOD(input.positionCS.xy, unity_LODFade.x);
+	// ClipLOD(input.positionCS.xy, unity_LODFade.x);
 
-	InputConfig config = GetInputConfig(input.baseUV);
+	InputConfig config = GetInputConfig(input.positionCS_SS, input.baseUV);
+	ClipLOD(config.fragment, unity_LODFade.x);
+
 	#if defined(_MASK_MAP)
 		config.useMask = true;
 	#endif
@@ -165,7 +167,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 	surface.occlusion = GetOcclusion(config);
 	surface.smoothness = GetSmoothness(config);
 	surface.fresnelStrength = GetFresnel(config);
-	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0); // 根据屏幕空间中的XY位置生成旋转平铺的抖动图案
+	surface.dither = InterleavedGradientNoise(config.fragment.positionSS, 0); // 根据屏幕空间中的XY位置生成旋转平铺的抖动图案
 	surface.renderingLayerMask = asuint(unity_RenderingLayer.x); // 利用内部函数完成从float到uint的转换
 
 	#if defined(_PREMULTIPLY_ALPHA)

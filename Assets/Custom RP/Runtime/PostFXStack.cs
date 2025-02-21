@@ -10,6 +10,8 @@ public partial class PostFXStack
     // 后处理效果，按字母顺序排列，shader中也需要保持一致
     enum Pass
     {
+        ApplyColorGrading,
+        ApplyColorGradingWithLuma,
         BloomAdd,
         BloomHorizontal,
         BloomPrefilter,
@@ -22,7 +24,9 @@ public partial class PostFXStack
         ColorGradingACES,
         ColorGradingNeutral,
         ColorGradingReinhard,
-        Final
+        FinalRescale,
+        FXAA,
+        FXAAWithLuma
     }
 
     CommandBuffer buffer = new CommandBuffer
@@ -35,23 +39,33 @@ public partial class PostFXStack
 
     static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
 
+    Vector2Int bufferSize;
+
     const int maxBloomPyramidLevels = 16;
     int bloomPyramidId;
-    bool useHDR;
+    bool keepAlpha, useHDR;
     int colorLUTResolution;
+    CameraBufferSettings.BicubicRescalingMode bicubicRescaling;
+    CameraBufferSettings.FXAA fxaa;
     public bool IsActive => settings != null;
 
     CameraSettings.FinalBlendMode finalBlendMode;
 
+    const string
+        fxaaQualityLowKeyword = "FXAA_QUALITY_LOW",
+        fxaaQualityMediumKeyword = "FXAA_QUALITY_MEDIUM";
+
     // 传入着色器的属性标识符
-    int
+    readonly int
         bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling"),
         bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"),
         bloomThresholdId = Shader.PropertyToID("_BloomThreshold"),
         bloomResultId = Shader.PropertyToID("_BloomResult"),
         bloomIntensityId = Shader.PropertyToID("_BloomIntensity"),
         fxSourceId = Shader.PropertyToID("_PostFXSource"),
-        fxSource2Id = Shader.PropertyToID("_PostFXSource2"),
+        fxSource2Id = Shader.PropertyToID("_PostFXSource2");
+
+    readonly int
         colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments"),
         colorFilterId = Shader.PropertyToID("_ColorFilter"),
         whiteBalanceId = Shader.PropertyToID("_WhiteBalance"),
@@ -66,10 +80,16 @@ public partial class PostFXStack
         smhRangeId = Shader.PropertyToID("_SMHRange"),
         colorGradingLUTId = Shader.PropertyToID("_ColorGradingLUT"),
         colorGradingLUTParametersId = Shader.PropertyToID("_ColorGradingLUTParameters"),
-        colorGradingLUTInLogId = Shader.PropertyToID("_ColorGradingLUTInLogC"),
-        finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend"),
-        finalDstBlendId = Shader.PropertyToID("_FinalDstBlend");
+        colorGradingLUTInLogId = Shader.PropertyToID("_ColorGradingLUTInLogC");
 
+    readonly int
+        colorGradingResultId = Shader.PropertyToID("_ColorGradingResult"),
+        finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend"),
+        finalDstBlendId = Shader.PropertyToID("_FinalDstBlend"),
+        copyBicubicId = Shader.PropertyToID("_CopyBicubic"),
+        finalResultId = Shader.PropertyToID("_FinalResult");
+
+    readonly int fxaaConfigId = Shader.PropertyToID("_FXAAConfig");
     public PostFXStack()
     {
         // 数组起始地址
@@ -82,10 +102,16 @@ public partial class PostFXStack
     }
 
     public void Setup(
-        ScriptableRenderContext context, Camera camera, PostFXSettings settings,
-        bool useHDR, int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode
+        ScriptableRenderContext context, Camera camera, Vector2Int bufferSize,
+        PostFXSettings settings, bool keepAlpha, bool useHDR, int colorLUTResolution,
+        CameraSettings.FinalBlendMode finalBlendMode, CameraBufferSettings.BicubicRescalingMode bicubicRescaling,
+        CameraBufferSettings.FXAA fxaa
     )
     {
+        this.keepAlpha = keepAlpha;
+        this.fxaa = fxaa;
+        this.bicubicRescaling = bicubicRescaling;
+        this.bufferSize = bufferSize;
         this.finalBlendMode = finalBlendMode;
         this.colorLUTResolution = colorLUTResolution;
         this.useHDR = useHDR;
@@ -101,12 +127,12 @@ public partial class PostFXStack
         if (DoBloom(sourceId))
         {
             // 如果启用了Bloom，就将结果传递给ToneMapping
-            DoColorGradingAndToneMapping(bloomResultId);
+            DoFinal(bloomResultId);
             buffer.ReleaseTemporaryRT(bloomResultId);
         }
         else
         {
-            DoColorGradingAndToneMapping(sourceId);
+            DoFinal(sourceId);
         }
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
@@ -120,12 +146,13 @@ public partial class PostFXStack
         buffer.SetRenderTarget(
             to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
         );
+        // 通过Material传递的材质，Unity自动生成了_TexelSize的float4属性
         buffer.DrawProcedural(
             Matrix4x4.identity, settings.Material, (int)pass,
             MeshTopology.Triangles, 3
         );
     }
-    void DrawFinal(RenderTargetIdentifier from)
+    void DrawFinal(RenderTargetIdentifier from, Pass pass)
     {
         buffer.SetGlobalFloat(finalSrcBlendId, (float)finalBlendMode.source);
         buffer.SetGlobalFloat(finalDstBlendId, (float)finalBlendMode.destination);
@@ -142,15 +169,25 @@ public partial class PostFXStack
         buffer.SetViewport(camera.pixelRect);
         buffer.DrawProcedural(
             Matrix4x4.identity, settings.Material,
-            (int)Pass.Final, MeshTopology.Triangles, 3
+            (int)pass, MeshTopology.Triangles, 3
         );
     }
 
     bool DoBloom(int sourceId)
     {
         // buffer.BeginSample("Bloom");
-        PostFXSettings.BloomSettings bloom = settings.Bloom;
-        int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
+        BloomSettings bloom = settings.Bloom;
+        int width, height;
+        if (bloom.ignoreRenderScale)
+        {
+            width = camera.pixelWidth / 2;
+            height = camera.pixelHeight / 2;
+        }
+        else
+        {
+            width = bufferSize.x / 2;
+            height = bufferSize.y / 2;
+        }
         if (
             bloom.maxIterations == 0 || bloom.intensity <= 0f ||
             height < bloom.downscaleLimit * 2 || width < bloom.downscaleLimit * 2 // 以半分辨率采样
@@ -174,7 +211,8 @@ public partial class PostFXStack
         RenderTextureFormat format = useHDR ?
             RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
         buffer.GetTemporaryRT(
-            bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format
+            bloomPrefilterId, bufferSize.x, bufferSize.y, 0,
+            FilterMode.Bilinear, format
         );
         Draw(sourceId, bloomPrefilterId, bloom.fadeFireflies ?
                 Pass.BloomPrefilterFireflies : Pass.BloomPrefilter); // 降分辨率的同时应用域值
@@ -307,7 +345,29 @@ public partial class PostFXStack
         ));
     }
 
-    void DoColorGradingAndToneMapping(int sourceId)
+    void ConfigureFXAA() // 传入FXAA的配置
+    {
+        if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Low)
+        {
+            buffer.EnableShaderKeyword(fxaaQualityLowKeyword);
+            buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
+        }
+        else if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Medium)
+        {
+            buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
+            buffer.EnableShaderKeyword(fxaaQualityMediumKeyword);
+        }
+        else
+        {
+            buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
+            buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
+        }
+        buffer.SetGlobalVector(fxaaConfigId, new Vector4(
+            fxaa.fixedThreshold, fxaa.relativeThreshold, fxaa.subpixelBlending
+        ));
+    }
+
+    void DoFinal(int sourceId)
     {
         ConfigureColorAdjustments();
         ConfigureWhiteBalance();
@@ -336,8 +396,68 @@ public partial class PostFXStack
         buffer.SetGlobalVector(colorGradingLUTParametersId,
             new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f)
         ); // 应用最终绘制的LUT参数
-        // Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Final);
-        DrawFinal(sourceId);
+
+        buffer.SetGlobalFloat(finalSrcBlendId, 1f);
+        buffer.SetGlobalFloat(finalDstBlendId, 0f);
+        if (fxaa.enabled)
+        {
+            ConfigureFXAA();
+            buffer.GetTemporaryRT(
+                colorGradingResultId, bufferSize.x, bufferSize.y, 0,
+                FilterMode.Bilinear, RenderTextureFormat.Default
+            );
+            Draw(
+                sourceId, colorGradingResultId,
+                keepAlpha ? Pass.ApplyColorGrading : Pass.ApplyColorGradingWithLuma
+            );
+        }
+        if (bufferSize.x == camera.pixelWidth)
+        {
+            if (fxaa.enabled)
+            {
+                DrawFinal(
+                    colorGradingResultId, keepAlpha ? Pass.FXAA : Pass.FXAAWithLuma
+                );
+                buffer.ReleaseTemporaryRT(colorGradingResultId);
+            }
+            else
+            {
+                DrawFinal(sourceId, Pass.ApplyColorGrading);
+            }
+        }
+        else
+        {
+            // 绘制两次，先绘制与缓冲区大小匹配的LDR纹理
+            // 设置混合模式为One Zero后，再使用缩放的最终绘制
+            // FXAA也使用相同的混合模式，提前设置
+            // buffer.SetGlobalFloat(finalSrcBlendId, 1f);
+            // buffer.SetGlobalFloat(finalDstBlendId, 0f);
+            buffer.GetTemporaryRT(
+                finalResultId, bufferSize.x, bufferSize.y, 0,
+                FilterMode.Bilinear, RenderTextureFormat.Default
+            );
+            if (fxaa.enabled)
+            {
+                Draw(
+                    colorGradingResultId, finalResultId,
+                    keepAlpha ? Pass.FXAA : Pass.FXAAWithLuma
+                );
+                buffer.ReleaseTemporaryRT(colorGradingResultId);
+            }
+            else
+            {
+                Draw(sourceId, finalResultId, Pass.ApplyColorGrading);
+            }
+            // 开启双三次采样，缩放比例小于1时更加平滑
+            // 区分上下采样，如缩放为2时双三次采样与双线性完全相同
+            bool bicubicSampling =
+                bicubicRescaling == CameraBufferSettings.BicubicRescalingMode.UpAndDown ||
+                bicubicRescaling == CameraBufferSettings.BicubicRescalingMode.UpOnly &&
+                bufferSize.x < camera.pixelWidth;
+            buffer.SetGlobalFloat(copyBicubicId, bicubicSampling ? 1f : 0f);
+            DrawFinal(finalResultId, Pass.FinalRescale);
+            buffer.ReleaseTemporaryRT(finalResultId);
+        }
         buffer.ReleaseTemporaryRT(colorGradingLUTId);
     }
 }

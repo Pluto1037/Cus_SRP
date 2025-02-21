@@ -44,6 +44,9 @@ bool4 unity_MetaFragmentControl;
 // 提亮diffuse所用内置值
 float unity_OneOverOutputBoost;
 float unity_MaxOutputValue;
+float4 unity_OrthoParams; // 用于正交投影的参数
 float4 _ProjectionParams; // _ProjectionParams 向量的X分量指示是否需要手动翻转UV
+float4 _ScreenParams; // 根据平面大小参数获取片元的屏幕坐标
+float4 _ZBufferParams; // 深度缓冲区参数，包括线性深度缓冲区的参数
 
 #endif

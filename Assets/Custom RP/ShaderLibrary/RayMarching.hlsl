@@ -214,8 +214,10 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
     float tempDist = 0;
     float3 cylinderStart, cylinderEnd;
 
+    int i;
+
     // x方向遍历
-    for (int i = 0; i < int(gridSeg.x); i++)
+    for (i = 0; i < int(gridSeg.x); i++)
     {
         cylinderStart = gridCenter + float3(xStart + i * xSize, cylinderRadius, yStart);
         cylinderEnd = gridCenter + float3(xStart + i * xSize, cylinderRadius, -yStart);
@@ -230,7 +232,7 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
         }
     }
     // y方向遍历，紧贴x方向下层
-    for (int i = 0; i < int(gridSeg.y); i++)
+    for (i = 0; i < int(gridSeg.y); i++)
     {
         cylinderStart = gridCenter + float3(xStart, -cylinderRadius, yStart + i * ySize);
         cylinderEnd = gridCenter + float3(-xStart, -cylinderRadius, yStart + i * ySize);
