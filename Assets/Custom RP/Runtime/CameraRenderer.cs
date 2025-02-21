@@ -233,7 +233,7 @@ public partial class CameraRenderer
 
         buffer.ClearRenderTarget(
             flags <= CameraClearFlags.Depth,
-            flags <= CameraClearFlags.Color,
+            flags <= CameraClearFlags.Color, // 始终清除颜色，消除帧缓冲区的Nan和Inf
             flags == CameraClearFlags.Color ?
                 camera.backgroundColor.linear : Color.clear
         );

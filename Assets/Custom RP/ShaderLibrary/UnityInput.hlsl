@@ -33,7 +33,7 @@ CBUFFER_END
 
 float4x4 unity_MatrixVP;
 float4x4 unity_MatrixV;
-float4x4 unity_MatrixInvV;
+float4x4 unity_MatrixInvV; // 三个随Core Lib定义的矩阵
 float4x4 unity_prev_MatrixM;
 float4x4 unity_prev_MatrixIM;
 float4x4 glstate_matrix_projection;

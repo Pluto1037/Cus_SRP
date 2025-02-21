@@ -10,10 +10,10 @@
 #define UNITY_MATRIX_M unity_ObjectToWorld
 #define UNITY_MATRIX_I_M unity_WorldToObject
 #define UNITY_MATRIX_V unity_MatrixV
-#define UNITY_MATRIX_I_V unity_MatrixInvV
+#define UNITY_MATRIX_I_V unity_MatrixInvV // 逆视图矩阵
 #define UNITY_MATRIX_VP unity_MatrixVP
-#define UNITY_PREV_MATRIX_M unity_prev_MatrixM
-#define UNITY_PREV_MATRIX_I_M unity_prev_MatrixIM
+#define UNITY_PREV_MATRIX_M unity_prev_MatrixM // 前一帧的模型矩阵，用于TAA
+#define UNITY_PREV_MATRIX_I_M unity_prev_MatrixIM // 前一帧的逆模型矩阵
 #define UNITY_MATRIX_P glstate_matrix_projection
 
 #if defined(_SHADOW_MASK_ALWAYS) || defined(_SHADOW_MASK_DISTANCE) // 使GPU自动实例化遮挡数据
