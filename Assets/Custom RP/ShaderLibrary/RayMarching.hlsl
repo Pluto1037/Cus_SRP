@@ -193,10 +193,33 @@ HitProperties CylinderHit(float3 rayOrigin, float3 rayDirection,
 
     return hitProp;
 }
+
+// 从CPU读取的预计算矩阵
+float4x4 _RotationMatrix;
+float4x4 _InverseRotationMatrix;
+float4 _WorldPosition;
+// 无缩放的Model变换
+float3 ObjectToWorldNoScale(float3 pos)
+{
+    return mul((float3x3)_RotationMatrix, pos)  + _WorldPosition.xyz;
+}
+float3 ObjectToWorldNoScaleDir(float3 dir)
+{
+    return mul((float3x3)_RotationMatrix, dir);
+}
+float3 WorldToObjectNoScale(float3 pos)
+{
+    float3 translated = pos - _WorldPosition.xyz;
+    return mul((float3x3)_InverseRotationMatrix, translated);
+}
+float3 WorldToObjectNoScaleDir(float3 dir)
+{
+    return mul((float3x3)_InverseRotationMatrix, dir);
+}
 // 根据单根圆柱交点计算函数，计算命中矩阵的交点信息
 // Grid的中心默认在物体的0,0,0
 HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
-    float2 gridSize, float2 gridSeg, float cylinderRadius, float3 gridCenter)
+    float2 gridSize, float2 gridSeg, float cylinderRadius)
 {
     // 根据单根求交结果，计算整个Grid的交点信息
     HitProperties hitProp;
@@ -219,8 +242,12 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
     // x方向遍历
     for (i = 0; i < int(gridSeg.x); i++)
     {
-        cylinderStart = gridCenter + float3(xStart + i * xSize, cylinderRadius, yStart);
-        cylinderEnd = gridCenter + float3(xStart + i * xSize, cylinderRadius, -yStart);
+        cylinderStart = ObjectToWorldNoScale(
+            float3(xStart + i * xSize, cylinderRadius, yStart)
+        );
+        cylinderEnd = ObjectToWorldNoScale(
+            float3(xStart + i * xSize, cylinderRadius, -yStart)
+        );
         HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
             cylinderStart, cylinderEnd, cylinderRadius);
         if (hit.isHit) {
@@ -234,8 +261,12 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
     // y方向遍历，紧贴x方向下层
     for (i = 0; i < int(gridSeg.y); i++)
     {
-        cylinderStart = gridCenter + float3(xStart, -cylinderRadius, yStart + i * ySize);
-        cylinderEnd = gridCenter + float3(-xStart, -cylinderRadius, yStart + i * ySize);
+        cylinderStart = ObjectToWorldNoScale(
+            float3(xStart, -cylinderRadius, yStart + i * ySize)
+        );
+        cylinderEnd = ObjectToWorldNoScale(
+            float3(-xStart, -cylinderRadius, yStart + i * ySize)
+        );
         HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
             cylinderStart, cylinderEnd, cylinderRadius);
         if (hit.isHit) {
@@ -249,5 +280,206 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
 
     return hitProp;
 }
+// Column柱状计算
+HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection, 
+    float3 columnLWH, float vertSeg, float cylinderRadius, float secRadius)
+{
+    float cLength = columnLWH.x, cWidth = columnLWH.y, cHeight = columnLWH.z;
+    int verticalSeg = int(vertSeg);
+
+    HitProperties hitProp, vertHit, horiHit;
+    hitProp.isHit = false;
+    vertHit.isHit = false;
+    horiHit.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    float halfCLength = cLength * 0.5;
+    float halfCWidth = cWidth * 0.5;
+    float halfCHeight = cHeight * 0.5;
+    // 判断是否命中四根垂直圆柱
+    float3 vertCylStartList[4] = {
+        float3(-halfCLength, halfCHeight, -halfCWidth),
+        float3(-halfCLength, halfCHeight, halfCWidth),
+        float3(halfCLength, halfCHeight, -halfCWidth),
+        float3(halfCLength, halfCHeight, halfCWidth)
+    };
+    float3 vertCylEndList[4] = {
+        float3(-halfCLength, -halfCHeight, -halfCWidth),
+        float3(-halfCLength, -halfCHeight, halfCWidth),
+        float3(halfCLength, -halfCHeight, -halfCWidth),
+        float3(halfCLength, -halfCHeight, halfCWidth)
+    };
+    int i;
+    for (i = 0; i < 4; ++i) {
+        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
+            ObjectToWorldNoScale(vertCylStartList[i]), ObjectToWorldNoScale(vertCylEndList[i]), cylinderRadius);
+        if (hit.isHit) {
+            if (!vertHit.isHit || length(hit.hitPoint - rayOrigin) < length(vertHit.hitPoint - rayOrigin)) {
+                vertHit = hit;
+            }
+        }
+    }
+
+    float expandRadius = cylinderRadius + secRadius;
+    // 判断是否命中横向框
+    float3 horiCylPointList[4] = {
+        float3(-halfCLength - expandRadius, 0, -halfCWidth - expandRadius),
+        float3(-halfCLength - expandRadius, 0, halfCWidth + expandRadius),
+        float3(halfCLength + expandRadius, 0, halfCWidth + expandRadius),
+        float3(halfCLength + expandRadius, 0, -halfCWidth - expandRadius)       
+    };
+    for(i = 0; i < 4; ++i) {
+        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
+            ObjectToWorldNoScale(horiCylPointList[i]), ObjectToWorldNoScale(horiCylPointList[(i + 1) % 4]), secRadius);
+        if (hit.isHit) {
+            if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
+                horiHit = hit;
+            }
+        }
+    }
+    if (vertHit.isHit && horiHit.isHit) {
+        if(length(vertHit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) 
+            hitProp = vertHit;
+        else hitProp = horiHit;
+        // hitProp = length(vertHit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin) ? vertHit : horiHit;
+    }
+    else if (vertHit.isHit) hitProp = vertHit;
+    else if (horiHit.isHit) hitProp = horiHit;
+
+    return hitProp;
+}
+
+
+// Torus圆弧计算
+HitProperties TorusHit(float3 rayOrigin, float3 rayDirection, 
+    float arcRadius, float cylinderRadius)
+{
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    // 圆弧的圆心在物体的0,0,0，圆心在Y轴上，应用旋转矩阵
+    // float3 center = ObjectToWorldNoScale(float3(1, 0, 1));
+    // float3 normal = normalize(ObjectToWorldNoScaleDir(float3(1, 1, 1)));
+    float3 center = float3(0, 0, 0);
+    float3 normal = float3(0, 1, 0);
+    // normal = normalize(normal - center); // 修正法向量
+
+    rayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    rayOrigin = WorldToObjectNoScale(rayOrigin);
+
+    float3 vec, pos = rayOrigin, project;
+    int iterNum = 50;
+    float minDist = 0.01f, maxDist = 100.0f;
+    float curDist = 0;
+    for(int i = 0; i < iterNum; ++i)
+    {
+        // 根据Torus SDF计算距离
+        pos += rayDirection * curDist;
+        vec = pos - center;
+        project = vec - dot(vec, normal) * normal;
+        project = arcRadius / length(project) * project; // 投影缩放至圆弧
+        // curDist = length(vec - project) - cylinderRadius;
+        curDist = length(float2(length(pos.xz) - arcRadius, pos.y)) - cylinderRadius;
+
+        // 命中
+        if(curDist < minDist)
+        {
+            hitProp.isHit = true;
+            hitProp.hitPoint = ObjectToWorldNoScale(pos); 
+            hitProp.hitNormal = normalize(ObjectToWorldNoScaleDir(vec - project));
+            break;
+        }
+        // 未命中
+        if(curDist > maxDist) break;
+    }
+
+    return hitProp;
+}
+
+
+
+// Newtonian Torus
+// 计算代入 Torus 方程后的四次方程
+float f_t(float t, float3 rayOrigin, float3 rayDirection, 
+    float arcRadius, float cylinderRadius) 
+{
+    float3 P = rayOrigin + t * rayDirection;
+    float x = P.x, y = P.y, z = P.z;
+    float temp = sqrt(x * x + z * z) - arcRadius;
+    return temp * temp + y * y - cylinderRadius * cylinderRadius;
+}
+// 计算导数 f'(t)
+float df_t(float t, float3 rayOrigin, float3 rayDirection, 
+    float arcRadius) 
+{
+    float3 P = rayOrigin + t * rayDirection;
+    float x = P.x, y = P.y, z = P.z;
+    
+    float temp = sqrt(x * x + z * z) - arcRadius;
+    
+    // 偏导数
+    float dx_dt = rayDirection.x, dy_dt = rayDirection.y, dz_dt = rayDirection.z;
+    float dTemp_dt = (x * dx_dt + z * dz_dt) / sqrt(x * x + z * z);
+    
+    return 2.0 * temp * dTemp_dt + 2.0 * y * dy_dt;
+}
+HitProperties NewtonianTorusHit(float3 rayOrigin, float3 rayDirection, 
+    float arcRadius, float cylinderRadius)
+{
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    rayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    rayOrigin = WorldToObjectNoScale(rayOrigin);
+
+    int maxIter = 10;
+    float minDist = 0.01f;
+    float curDist = 0;
+    float t; // 根据SDF选初值
+
+    int i;
+    float march = 0;
+    float3 pos = rayOrigin;
+    // 利用SDF快速定位初值
+    for (i = 0; i < 10; i++) {
+        pos += rayDirection * march;
+        march = length(float2(length(pos.xz) - arcRadius, pos.y)) - cylinderRadius;        
+    }   
+    t = length(pos - rayOrigin);
+
+    for (i = 0; i < maxIter; i++) {
+        float ft = f_t(t, rayOrigin, rayDirection, arcRadius, cylinderRadius);
+        float dft = df_t(t, rayOrigin, rayDirection, arcRadius);
+        
+        // 避免除零错误
+        if (abs(dft) < 1e-6) break;
+
+        // Newton-Raphson 迭代
+        float t_next = t - ft / dft;
+
+        pos = rayOrigin + t_next * rayDirection;
+        curDist = length(float2(length(pos.xz) - arcRadius, pos.y)) - cylinderRadius;
+        
+        // 误差足够小则收敛
+        if (curDist < minDist) {
+            hitProp.isHit = true;
+            hitProp.hitPoint = ObjectToWorldNoScale(pos);
+            float3 project = float3(pos.x, 0, pos.z);
+            project = arcRadius / length(project) * project; // 投影缩放至圆弧
+            hitProp.hitNormal = normalize(ObjectToWorldNoScaleDir(pos - project));
+            break;
+        }
+
+        t = t_next;
+    }
+
+    return hitProp;
+}
+
 
 #endif

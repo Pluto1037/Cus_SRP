@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _CLIPPING
+  - _MASK_MAP
   - _NORMAL_MAP
   - _RECEIVE_SHADOWS
   - _SHADOWS_CLIP
@@ -30,7 +31,7 @@ Material:
     m_TexEnvs:
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: b1430173396faa549a8000b54227c35a, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 16, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: 0c202b6323e49d04c80248c98bd99975, type: 3}
@@ -41,15 +42,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: b1430173396faa549a8000b54227c35a, type: 3}
+        m_Scale: {x: 16, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailNormalMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: f07d43ee180a360448c533323025510a, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissionMap:
@@ -58,7 +59,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: b1430173396faa549a8000b54227c35a, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 16, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskMap:
         m_Texture: {fileID: 0}
@@ -84,8 +85,8 @@ Material:
     m_Floats:
     - _BumpScale: 1
     - _Clipping: 1
-    - _Cutoff: 1
-    - _CylinderRadius: 0.5
+    - _Cutoff: 0.3
+    - _CylinderRadius: 0
     - _DetailAlbedo: 1
     - _DetailMapToggle: 0
     - _DetailNormalMapScale: 1
@@ -96,7 +97,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _MaskMapToggle: 0
+    - _MaskMapToggle: 1
     - _Metallic: 1
     - _Mode: 0
     - _NormalMapToggle: 1
@@ -116,11 +117,11 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.6901961, g: 0.6901961, b: 0.6901961, a: 1}
-    - _Color: {r: 0.6901961, g: 0.6901961, b: 0.6901961, a: 1}
-    - _CylinderEnd: {r: 0, g: -0.5, b: 0, a: 0}
-    - _CylinderStart: {r: 0, g: 0.5, b: 0, a: 0}
+    - _BaseColor: {r: 0.94509804, g: 0.9019608, b: 0.9019608, a: 1}
+    - _Color: {r: 0.94509804, g: 0.9019608, b: 0.9019608, a: 1}
+    - _CylinderEnd: {r: 0, g: 0, b: 0, a: 0}
+    - _CylinderStart: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _GridWidthHeight: {r: 5, g: 5, b: 0, a: 0}
-    - _WidthHeightSegments: {r: 2, g: 2, b: 0, a: 0}
+    - _GridWidthHeight: {r: 0, g: 0, b: 0, a: 0}
+    - _WidthHeightSegments: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []

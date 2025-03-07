@@ -104,13 +104,13 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(config));
 	#endif
-
 	// ---------------RAY MARCHING----------------
 	// 在表面模型前计算RayMarching材质并返回结果
 	#if defined(_RAY_MARCHING)
-		float3 rayOrigin = _WorldSpaceCameraPos;		
-		float3 rayDirection = normalize(input.positionWS - rayOrigin);
-		rayOrigin = input.positionWS;
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
 		HitProperties cylinderHitProp = CylinderHit(
 			rayOrigin, rayDirection, 
 			TransformObjectToWorld(GetCylinderStart(config)), 
@@ -124,14 +124,15 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		input.normalWS = cylinderHitProp.hitNormal; 
 	#endif
 	#if defined(_RAY_MARCHING_GRID)
-		float3 rayOrigin = _WorldSpaceCameraPos;		
-		float3 rayDirection = normalize(input.positionWS - rayOrigin);
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
 		HitProperties gridHitProp = GridHit(
 			rayOrigin, rayDirection, 
 			GetGridWidthHeight(config),
 			GetWidthHeightSegments(config), 
-			GetCylinderRadius(config),
-			TransformObjectToWorld(float3(0, 0, 0))
+			GetCylinderRadius(config)
 		);
 		if(!gridHitProp.isHit)
 			discard;
@@ -139,7 +140,47 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		input.positionWS = gridHitProp.hitPoint;
 		input.normalWS = gridHitProp.hitNormal;
 	#endif
+	#if defined(_RAY_MARCHING_ARC)
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
+		HitProperties torusHitProp = NewtonianTorusHit(
+			rayOrigin, rayDirection, 
+			GetArcRadius(config),
+			GetCylinderRadius(config)
+		);
+		// HitProperties torusHitProp = TorusHit(
+		// 	rayOrigin, rayDirection, 
+		// 	GetArcRadius(config),
+		// 	GetCylinderRadius(config)
+		// );
+		if(!torusHitProp.isHit)
+			discard;
+		// 启用RayMarching后，覆盖世界坐标和法线
+		input.positionWS = torusHitProp.hitPoint;
+		input.normalWS = torusHitProp.hitNormal;
+	#endif
+	#if defined(_RAY_MARCHING_COLUMN)
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
+		HitProperties columnHitProp = ColumnHit(
+			rayOrigin, rayDirection, 
+			GetColumnLengthWidthHeight(config), 
+			GetVerticalSegments(config),
+			GetCylinderRadius(config),
+			GetSecondaryCylinderRadius(config)
+		);
+		if(!columnHitProp.isHit)
+			discard;
+		// 启用RayMarching后，覆盖世界坐标和法线
+		input.positionWS = columnHitProp.hitPoint;
+		input.normalWS = columnHitProp.hitNormal;
+	#endif
 	// -------------------------------------------
+	
 
 	Surface surface;
 	surface.position = input.positionWS;

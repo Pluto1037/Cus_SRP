@@ -34,6 +34,12 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     // Grid
     UNITY_DEFINE_INSTANCED_PROP(float4, _GridWidthHeight)
     UNITY_DEFINE_INSTANCED_PROP(float4, _WidthHeightSegments)
+    // Arc
+    UNITY_DEFINE_INSTANCED_PROP(float, _ArcRadius)
+    // Column
+    UNITY_DEFINE_INSTANCED_PROP(float4, _ColumnLengthWidthHeight)
+    UNITY_DEFINE_INSTANCED_PROP(float, _VerticalSegments)
+    UNITY_DEFINE_INSTANCED_PROP(float, _SecondaryCylinderRadius)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxSteps)
     // UNITY_DEFINE_INSTANCED_PROP(float, _SurfDist)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxDist)
@@ -185,5 +191,17 @@ float2 GetGridWidthHeight (InputConfig c) {
 }
 float2 GetWidthHeightSegments (InputConfig c) {
     return INPUT_PROP(_WidthHeightSegments).xy;
+}
+float GetArcRadius (InputConfig c) {
+    return INPUT_PROP(_ArcRadius);
+}
+float3 GetColumnLengthWidthHeight (InputConfig c) {
+    return INPUT_PROP(_ColumnLengthWidthHeight).xyz;
+}
+float GetVerticalSegments (InputConfig c) {
+    return INPUT_PROP(_VerticalSegments);
+}
+float GetSecondaryCylinderRadius (InputConfig c) {
+    return INPUT_PROP(_SecondaryCylinderRadius);
 }
 #endif

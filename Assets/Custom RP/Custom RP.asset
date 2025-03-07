@@ -21,7 +21,7 @@ MonoBehaviour:
     renderScale: 1
     bicubicRescaling: 1
     fxaa:
-      enabled: 0
+      enabled: 1
       fixedThreshold: 0.0833
       relativeThreshold: 0.166
       subpixelBlending: 0.75
@@ -31,7 +31,7 @@ MonoBehaviour:
   useSRPBatcher: 0
   useLightsPerObject: 1
   shadows:
-    maxDistance: 80
+    maxDistance: 40
     distanceFade: 0.15
     directional:
       atlasSize: 2048

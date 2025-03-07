@@ -21,7 +21,7 @@ public class CustomShaderGUI : ShaderGUI
     Vector3 cylEnd;
     float cylRadius;
 
-    string[] options = new string[] { "Single", "Grid" };
+    string[] options = new string[] { "Single", "Grid", "Arc", "Column" };
 
     // 网格状分布参数
     int cylSelected;
@@ -29,6 +29,14 @@ public class CustomShaderGUI : ShaderGUI
     float gridHeight;
     int widthSegments;
     int heightSegments;
+    // 圆弧参数，轴对齐，垂直y轴，仅定义圆的半径，圆心在原点
+    float arcRadius;
+    // 柱状体参数
+    int verticalSegments;
+    float secCylRadius;
+    float columnLength;
+    float columnWidth;
+    float columnHeight;
 
     public override void OnGUI(
         MaterialEditor materialEditor, MaterialProperty[] properties
@@ -51,6 +59,16 @@ public class CustomShaderGUI : ShaderGUI
             cylSelected = 1;
             showRT = true;
         }
+        else if (keyWords.Contains("_RAY_MARCHING_ARC"))
+        {
+            cylSelected = 2;
+            showRT = true;
+        }
+        else if (keyWords.Contains("_RAY_MARCHING_COLUMN"))
+        {
+            cylSelected = 3;
+            showRT = true;
+        }
         else
         {
             showRT = false;
@@ -67,6 +85,13 @@ public class CustomShaderGUI : ShaderGUI
             gridHeight = gridWH.y;
             widthSegments = (int)gridWHSeg.x;
             heightSegments = (int)gridWHSeg.y;
+            arcRadius = FindProperty("_ArcRadius", properties, false).floatValue;
+            Vector3 columnLWH = FindProperty("_ColumnLengthWidthHeight", properties, false).vectorValue;
+            columnLength = columnLWH.x;
+            columnWidth = columnLWH.y;
+            columnHeight = columnLWH.z;
+            verticalSegments = (int)FindProperty("_VerticalSegments", properties, false).floatValue;
+            secCylRadius = FindProperty("_SecondaryCylinderRadius", properties, false).floatValue;
         }
 
         EditorGUI.BeginChangeCheck();
@@ -78,14 +103,24 @@ public class CustomShaderGUI : ShaderGUI
             switch (cylSelected)
             {
                 case 0:
-                    cylStart = EditorGUILayout.Vector3Field("Cylinder Start", cylStart);
-                    cylEnd = EditorGUILayout.Vector3Field("Cylinder End", cylEnd);
+                    // cylStart = EditorGUILayout.Vector3Field("Cylinder Start", cylStart);
+                    // cylEnd = EditorGUILayout.Vector3Field("Cylinder End", cylEnd);
                     break;
                 case 1:
-                    gridWidth = Mathf.Max(0.1f, EditorGUILayout.FloatField("Grid Width", gridWidth));
-                    gridHeight = Mathf.Max(0.1f, EditorGUILayout.FloatField("Grid Height", gridHeight));
+                    gridWidth = Mathf.Max(0, EditorGUILayout.FloatField("Grid Width", gridWidth));
+                    gridHeight = Mathf.Max(0, EditorGUILayout.FloatField("Grid Height", gridHeight));
                     widthSegments = Mathf.Max(1, EditorGUILayout.IntField("Width Segments", widthSegments));
                     heightSegments = Mathf.Max(1, EditorGUILayout.IntField("Height Segments", heightSegments));
+                    break;
+                case 2:
+                    arcRadius = Mathf.Max(0, EditorGUILayout.FloatField("Arc Radius", arcRadius));
+                    break;
+                case 3:
+                    columnLength = Mathf.Max(0, EditorGUILayout.FloatField("Column Length", columnLength));
+                    columnWidth = Mathf.Max(0, EditorGUILayout.FloatField("Column Width", columnWidth));
+                    columnHeight = Mathf.Max(0, EditorGUILayout.FloatField("Column Height", columnHeight));
+                    verticalSegments = Mathf.Max(1, EditorGUILayout.IntField("Vertical Segments", verticalSegments));
+                    secCylRadius = Mathf.Max(0, EditorGUILayout.FloatField("Secondary Cylinder Radius", secCylRadius));
                     break;
                 default:
                     Debug.LogError("Unrecognized Option");
@@ -121,11 +156,17 @@ public class CustomShaderGUI : ShaderGUI
     {
         SetProperty("_RayMarching", "_RAY_MARCHING", showRT && cylSelected == 0);
         SetProperty("_RayMarchingGrid", "_RAY_MARCHING_GRID", showRT && cylSelected == 1);
+        SetProperty("_RayMarchingArc", "_RAY_MARCHING_ARC", showRT && cylSelected == 2);
+        SetProperty("_RayMarchingColumn", "_RAY_MARCHING_COLUMN", showRT && cylSelected == 3);
         MaterialProperty cylinderStart = FindProperty("_CylinderStart", properties, false);
         MaterialProperty cylinderEnd = FindProperty("_CylinderEnd", properties, false);
         MaterialProperty cylinderRadius = FindProperty("_CylinderRadius", properties, false);
         MaterialProperty gridWH = FindProperty("_GridWidthHeight", properties, false);
         MaterialProperty gridWHSeg = FindProperty("_WidthHeightSegments", properties, false);
+        MaterialProperty arcR = FindProperty("_ArcRadius", properties, false);
+        MaterialProperty colLWH = FindProperty("_ColumnLengthWidthHeight", properties, false);
+        MaterialProperty vertSeg = FindProperty("_VerticalSegments", properties, false);
+        MaterialProperty sCylRadius = FindProperty("_SecondaryCylinderRadius", properties, false);
         if (cylinderStart != null)
         {
             cylinderStart.vectorValue = cylStart;
@@ -144,7 +185,25 @@ public class CustomShaderGUI : ShaderGUI
         }
         if (gridWHSeg != null)
         {
-            gridWHSeg.vectorValue = new Vector3(widthSegments, heightSegments, 0);
+            gridWHSeg.vectorValue = new Vector4(
+                widthSegments, heightSegments, 1f / (widthSegments - 1), 1f / (heightSegments - 1)
+            );
+        }
+        if (arcR != null)
+        {
+            arcR.floatValue = arcRadius;
+        }
+        if (colLWH != null)
+        {
+            colLWH.vectorValue = new Vector3(columnLength, columnWidth, columnHeight);
+        }
+        if (vertSeg != null)
+        {
+            vertSeg.floatValue = verticalSegments;
+        }
+        if (sCylRadius != null)
+        {
+            sCylRadius.floatValue = secCylRadius;
         }
     }
 

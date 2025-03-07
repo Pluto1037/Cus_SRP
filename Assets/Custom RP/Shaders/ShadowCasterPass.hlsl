@@ -30,6 +30,12 @@ struct Varyings {
 	#if defined(_RAY_MARCHING_GRID)
 		float3 positionWS : VAR_POSITION; // 世界空间位置
 	#endif
+	#if defined(_RAY_MARCHING_ARC)
+		float3 positionWS : VAR_POSITION; // 世界空间位置
+	#endif
+	#if defined(_RAY_MARCHING_COLUMN)
+		float3 positionWS : VAR_POSITION; // 世界空间位置
+	#endif
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
@@ -46,6 +52,12 @@ Varyings ShadowCasterPassVertex (Attributes input) {
 		output.positionWS = positionWS;
 	#endif
 	#if defined(_RAY_MARCHING_GRID)
+		output.positionWS = positionWS;
+	#endif
+	#if defined(_RAY_MARCHING_ARC)
+		output.positionWS = positionWS;
+	#endif
+	#if defined(_RAY_MARCHING_COLUMN)
 		output.positionWS = positionWS;
 	#endif
 
@@ -107,11 +119,46 @@ float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 			rayOrigin, rayDirection, 
 			GetGridWidthHeight(config),
 			GetWidthHeightSegments(config), 
-			GetCylinderRadius(config),
-			TransformObjectToWorld(float3(0, 0, 0))
+			GetCylinderRadius(config)
 		);
 		if(gridHitProp.isHit) {
 			input.positionCS_SS = TransformWorldToHClip(gridHitProp.hitPoint);
+		}
+		else	discard;
+	#endif
+	#if defined(_RAY_MARCHING_ARC)
+		float3 rayOrigin, rayDirection;
+		if(_WorldSpaceLightPos0.z != -1) {
+			rayOrigin = input.positionWS;
+			rayDirection = normalize(_WorldSpaceLightPos0.xyz);
+		}
+		else 	discard; // 非单个平行光不渲染阴影贴图
+		HitProperties torusHitProp = TorusHit(
+			rayOrigin, rayDirection, 
+			GetArcRadius(config),
+			GetCylinderRadius(config)
+		);
+		if(torusHitProp.isHit) {
+			input.positionCS_SS = TransformWorldToHClip(torusHitProp.hitPoint);
+		}
+		else	discard;
+	#endif
+	#if defined(_RAY_MARCHING_COLUMN)
+		float3 rayOrigin, rayDirection;
+		if(_WorldSpaceLightPos0.z != -1) {
+			rayOrigin = input.positionWS;
+			rayDirection = normalize(_WorldSpaceLightPos0.xyz);
+		}
+		else 	discard; // 非单个平行光不渲染阴影贴图
+		HitProperties columnHitProp = ColumnHit(
+			rayOrigin, rayDirection, 
+			GetColumnLengthWidthHeight(config),
+			GetVerticalSegments(config),
+			GetCylinderRadius(config),
+			GetSecondaryCylinderRadius(config)
+		);
+		if(columnHitProp.isHit) {
+			input.positionCS_SS = TransformWorldToHClip(columnHitProp.hitPoint);
 		}
 		else	discard;
 	#endif
