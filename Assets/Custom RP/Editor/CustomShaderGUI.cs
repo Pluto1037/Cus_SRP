@@ -21,7 +21,7 @@ public class CustomShaderGUI : ShaderGUI
     Vector3 cylEnd;
     float cylRadius;
 
-    string[] options = new string[] { "Single", "Grid", "Arc", "Column" };
+    string[] options = new string[] { "Single", "Grid", "Arc", "Column", "Quadra" };
 
     // 网格状分布参数
     int cylSelected;
@@ -37,6 +37,8 @@ public class CustomShaderGUI : ShaderGUI
     float columnLength;
     float columnWidth;
     float columnHeight;
+    // 二次曲线参数
+    Vector3 quadraConfig;
 
     public override void OnGUI(
         MaterialEditor materialEditor, MaterialProperty[] properties
@@ -69,6 +71,11 @@ public class CustomShaderGUI : ShaderGUI
             cylSelected = 3;
             showRT = true;
         }
+        else if (keyWords.Contains("_RAY_MARCHING_QUADRA"))
+        {
+            cylSelected = 4;
+            showRT = true;
+        }
         else
         {
             showRT = false;
@@ -92,6 +99,7 @@ public class CustomShaderGUI : ShaderGUI
             columnHeight = columnLWH.z;
             verticalSegments = (int)FindProperty("_VerticalSegments", properties, false).floatValue;
             secCylRadius = FindProperty("_SecondaryCylinderRadius", properties, false).floatValue;
+            quadraConfig = FindProperty("_QuadraticConfig", properties, false).vectorValue;
         }
 
         EditorGUI.BeginChangeCheck();
@@ -121,6 +129,9 @@ public class CustomShaderGUI : ShaderGUI
                     columnHeight = Mathf.Max(0, EditorGUILayout.FloatField("Column Height", columnHeight));
                     verticalSegments = Mathf.Max(1, EditorGUILayout.IntField("Vertical Segments", verticalSegments));
                     secCylRadius = Mathf.Max(0, EditorGUILayout.FloatField("Secondary Cylinder Radius", secCylRadius));
+                    break;
+                case 4:
+                    quadraConfig = EditorGUILayout.Vector3Field("Quadra Config", quadraConfig);
                     break;
                 default:
                     Debug.LogError("Unrecognized Option");
@@ -158,6 +169,7 @@ public class CustomShaderGUI : ShaderGUI
         SetProperty("_RayMarchingGrid", "_RAY_MARCHING_GRID", showRT && cylSelected == 1);
         SetProperty("_RayMarchingArc", "_RAY_MARCHING_ARC", showRT && cylSelected == 2);
         SetProperty("_RayMarchingColumn", "_RAY_MARCHING_COLUMN", showRT && cylSelected == 3);
+        SetProperty("_RayMarchingQuadra", "_RAY_MARCHING_QUADRA", showRT && cylSelected == 4);
         MaterialProperty cylinderStart = FindProperty("_CylinderStart", properties, false);
         MaterialProperty cylinderEnd = FindProperty("_CylinderEnd", properties, false);
         MaterialProperty cylinderRadius = FindProperty("_CylinderRadius", properties, false);
@@ -167,6 +179,7 @@ public class CustomShaderGUI : ShaderGUI
         MaterialProperty colLWH = FindProperty("_ColumnLengthWidthHeight", properties, false);
         MaterialProperty vertSeg = FindProperty("_VerticalSegments", properties, false);
         MaterialProperty sCylRadius = FindProperty("_SecondaryCylinderRadius", properties, false);
+        MaterialProperty quadraticConfig = FindProperty("_QuadraticConfig", properties, false);
         if (cylinderStart != null)
         {
             cylinderStart.vectorValue = cylStart;
@@ -204,6 +217,10 @@ public class CustomShaderGUI : ShaderGUI
         if (sCylRadius != null)
         {
             sCylRadius.floatValue = secCylRadius;
+        }
+        if (quadraticConfig != null)
+        {
+            quadraticConfig.vectorValue = quadraConfig;
         }
     }
 

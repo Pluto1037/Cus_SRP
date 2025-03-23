@@ -18,6 +18,7 @@
 
 // RAY MARCHING引入
 #include "../ShaderLibrary/RayMarching.hlsl"
+#include "../ShaderLibrary/RMNewtonian.hlsl"
 
 // 利用两个宏来定义纹理变量与采样器
 // TEXTURE2D(_BaseMap);
@@ -145,11 +146,20 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		float3 rayDirection = unity_OrthoParams.w ? 
 			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
 			normalize(input.positionWS - _WorldSpaceCameraPos);
-		HitProperties torusHitProp = NewtonianTorusHit(
+		// Phantom迭代
+		HitProperties torusHitProp = PhantomTestHit(
+			GetQuadraticConfig(config),
 			rayOrigin, rayDirection, 
 			GetArcRadius(config),
 			GetCylinderRadius(config)
 		);
+		// 牛顿迭代（WIP）
+		// HitProperties torusHitProp = NewtonianTorusHit(
+		// 	rayOrigin, rayDirection, 
+		// 	GetArcRadius(config),
+		// 	GetCylinderRadius(config)
+		// );
+		// Ray Marching方法（阴影问题）
 		// HitProperties torusHitProp = TorusHit(
 		// 	rayOrigin, rayDirection, 
 		// 	GetArcRadius(config),
@@ -178,6 +188,23 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		// 启用RayMarching后，覆盖世界坐标和法线
 		input.positionWS = columnHitProp.hitPoint;
 		input.normalWS = columnHitProp.hitNormal;
+	#endif
+	#if defined(_RAY_MARCHING_QUADRA)
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
+		HitProperties phantomHitProp = PhantomTestHit(
+			GetQuadraticConfig(config),
+			rayOrigin, rayDirection, 
+			GetArcRadius(config),
+			GetCylinderRadius(config)
+		);
+		if(!phantomHitProp.isHit)
+			discard;
+		// 启用RayMarching后，覆盖世界坐标和法线
+		input.positionWS = phantomHitProp.hitPoint;
+		input.normalWS = phantomHitProp.hitNormal;
 	#endif
 	// -------------------------------------------
 	

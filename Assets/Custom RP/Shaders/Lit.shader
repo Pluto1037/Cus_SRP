@@ -14,6 +14,7 @@ Shader "Custom RP/Lit"
         [HideInInspector][Toggle(_RAY_MARCHING_GRID)] _RayMarchingGrid("Enable Ray Marching Grid", Float) = 0
         [HideInInspector][Toggle(_RAY_MARCHING_ARC)] _RayMarchingArc("Enable Ray Marching Arc", Float) = 0
         [HideInInspector][Toggle(_RAY_MARCHING_COLUMN)] _RayMarchingColumn("Enable Ray Marching Column", Float) = 0
+        [HideInInspector][Toggle(_RAY_MARCHING_QUADRA)] _RayMarchingQuadra("Enable Ray Marching Quadra", Float) = 0
         [HideInInspector]_CylinderStart("Cylinder Start", Vector) = (0, 0.5, 0) // 圆柱体起始点
         [HideInInspector]_CylinderEnd("Cylinder End", Vector) = (0, -0.5, 0) // 圆柱体结束点
         [HideInInspector]_CylinderRadius("Cylinder Radius", Float) = 0.5 // 圆柱体半径
@@ -23,6 +24,7 @@ Shader "Custom RP/Lit"
         [HideInInspector]_ColumnLengthWidthHeight("Column Length Width Height", Vector) = (1, 1, 2) // 柱状长宽高
         [HideInInspector]_VerticalSegments("Vertical Segments", Float) = 1 // 纵向分割数
         [HideInInspector]_SecondaryCylinderRadius("Secondary Cylinder Radius", Float) = 0.1 // 柱状横向圆柱体半径
+        [HideInInspector]_QuadraticConfig("Quadratic Config", Vector) = (1, 0, 0) // 柱状长宽高
         // 无缩放矩阵预计算
         // [HideInInspector]_RotationMatrix("Rotation Matrix", Matrix) = {} // 物体到世界坐标系的变换矩阵
         // [HideInInspector]_InverseRotationMatrix("Inverse Roatation Matrix", Matrix) = {} // 世界到物体坐标系的变换矩阵
@@ -91,6 +93,7 @@ Shader "Custom RP/Lit"
             #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
             #pragma shader_feature _RAY_MARCHING_ARC // 圆弧RM
             #pragma shader_feature _RAY_MARCHING_COLUMN // 柱状RM
+            #pragma shader_feature _RAY_MARCHING_QUADRA // 二次曲线RM
 
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
@@ -119,6 +122,7 @@ Shader "Custom RP/Lit"
             #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
             #pragma shader_feature _RAY_MARCHING_ARC // 圆弧RM
             #pragma shader_feature _RAY_MARCHING_COLUMN // 柱状RM
+            #pragma shader_feature _RAY_MARCHING_QUADRA // 二次曲线RM
             #pragma multi_compile _ LOD_FADE_CROSSFADE
 			#pragma multi_compile_instancing
 			#pragma vertex ShadowCasterPassVertex

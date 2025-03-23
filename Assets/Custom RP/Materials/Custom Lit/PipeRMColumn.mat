@@ -84,7 +84,7 @@ Material:
     - _BumpScale: 1
     - _Clipping: 0
     - _Cutoff: 0
-    - _CylinderRadius: 0.08
+    - _CylinderRadius: 0.09
     - _DetailAlbedo: 1
     - _DetailMapToggle: 0
     - _DetailNormalMapScale: 1
@@ -114,9 +114,10 @@ Material:
     - _RayMarchingArc: 0
     - _RayMarchingColumn: 1
     - _RayMarchingGrid: 0
+    - _RayMarchingQuadra: 0
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001
-    - _SecondaryCylinderRadius: 0.05
+    - _SecondaryCylinderRadius: 0.07
     - _Shadows: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
@@ -124,16 +125,17 @@ Material:
     - _SrcBlend: 1
     - _SurfDist: 4.1
     - _UVSec: 0
-    - _VerticalSegments: 6
+    - _VerticalSegments: 10
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.9433962, g: 0.90334636, b: 0.90334636, a: 1}
     - _Color: {r: 0.9433962, g: 0.90334636, b: 0.90334636, a: 1}
-    - _ColumnLengthWidthHeight: {r: 0.84, g: 0.96, b: 5.4, a: 0}
+    - _ColumnLengthWidthHeight: {r: 1.2, g: 1.2, b: 10.94, a: 0}
     - _ColumnWidthHeightSegments: {r: 0, g: 0, b: 1, a: 0}
     - _CylinderEnd: {r: 0, g: 0, b: 0, a: 0}
     - _CylinderStart: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GridWidthHeight: {r: 2.41, g: 0, b: 0, a: 0}
+    - _QuadraticConfig: {r: 1, g: 0, b: 0, a: 0}
     - _WidthHeightSegments: {r: 1, g: 1, b: Infinity, a: Infinity}
   m_BuildTextureStacks: []

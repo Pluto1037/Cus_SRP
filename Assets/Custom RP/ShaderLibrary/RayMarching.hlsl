@@ -95,6 +95,73 @@ HitProperties HitCircle(float cylDotRay, float3 rayOrigin, float3 rayDirection,
     return hitProp; // 默认未击中
     
 }
+// 判断是否击中圆柱两端的圆球
+HitProperties HitSphere(float3 rayOrigin, float3 rayDirection, 
+    float3 startVec, float3 planeNormal, float radius)
+{
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    float3 sphereCenter = startVec;
+    float3 sn = -planeNormal;
+    // 计算光线起点到球心的向量
+    float3 oc = rayOrigin - sphereCenter;
+
+    // 构建二次方程系数
+    float a = dot(rayDirection, rayDirection); // 由于已归一化，a=1
+    float b = 2.0 * dot(rayDirection, oc);
+    float c = dot(oc, oc) - radius * radius;
+
+    // 计算判别式
+    float discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return hitProp; // 无实根，直接返回
+
+    // 计算根
+    float sqrtD = sqrt(discriminant);
+    float t1 = (-b - sqrtD) / (2 * a);
+    float t2 = (-b + sqrtD) / (2 * a);
+
+    // 确保 t1 <= t2
+    if (t1 > t2) {
+        float temp = t1;
+        t1 = t2;
+        t2 = temp;
+    }
+
+    // 遍历候选根，寻找有效交点
+    float t = -1.0;
+    for (int i = 0; i < 2; ++i) {
+        float candidateT = (i == 0) ? t1 : t2;
+        if (candidateT < 0) continue; // 忽略负值
+
+        // 计算交点位置
+        float3 P = rayOrigin + candidateT * rayDirection;
+        float3 P_sphere = P - sphereCenter;
+
+        // 检查条件 1：交点在半球开口方向
+        bool inHemisphere = dot(P_sphere, sn) >= 0;
+
+        // 检查条件 2：光线击中外表面（入射方向与法线相反）
+        bool isFrontFace = dot(rayDirection, P_sphere) < 0;
+
+        if (inHemisphere && isFrontFace) {
+            t = candidateT;
+            break; // 优先选择较小的 t
+        }
+    }
+
+    // 填充命中结果
+    if (t >= 0) {
+        hitProp.isHit = true;
+        hitProp.hitPoint = rayOrigin + t * rayDirection;
+        hitProp.hitNormal = normalize(hitProp.hitPoint - sphereCenter);
+    }
+
+    return hitProp; // 默认未击中
+    
+}
 // 判断是否击中圆柱的侧面
 bool isHitSide(float sideDist, float startCrossDist, float endCrossDist, bool isSameDir, float height)
 {
@@ -170,6 +237,71 @@ HitProperties CylinderHit(float3 rayOrigin, float3 rayDirection,
     HitProperties circleHitProp = HitCircle(cylDotRay, rayOrigin, rayDirection, 
         cylinderStart, cylinderEnd, cylinderDir, cylinderRadius);
     if (circleHitProp.isHit) return circleHitProp;
+    
+    // 根据theta求得射线在圆柱中轴线方向的偏移距离
+    float theta = acos(abs(cylDotRay));
+    float sideDist = halfCrossLen * cos(theta) / sin(theta);
+    // 获取交点距离起点和终点的距离
+    float startCrossDist = abs(crossProp.x);
+    float endCrossDist = abs(height - crossProp.x);    
+    // 判断是否击中圆柱侧面
+    bool sideHit = isHitSide(sideDist, startCrossDist, endCrossDist, isSameDir, height);
+
+    if (sideHit) { 
+        // 计算侧面击中信息
+        float3 sideHitVecCross = SideHitVecOnCross(rayOrigin, rayDirection, cylinderDir, crossProp.y, halfCrossLen);
+        hitProp.isHit = true;
+        hitProp.hitNormal = normalize(sideHitVecCross - (cylinderStart + crossProp.x * cylinderDir));
+        hitProp.hitPoint = isSameDir ? ( sideHitVecCross - sideDist * cylinderDir)
+            : (sideHitVecCross + sideDist * cylinderDir);
+
+        return hitProp;      
+    }
+
+    return hitProp;
+}
+// 两端为球体的圆柱
+HitProperties CylinderHitSphere(float3 rayOrigin, float3 rayDirection, 
+    float3 cylinderStart, float3 cylinderEnd, float cylinderRadius)
+{
+    // 圆柱信息定义
+    // float3 cylinderStart = float3(0, 1, 0);
+    // float3 cylinderEnd = float3(0, -1, 0);
+    // float cylinderRadius = 1;
+
+    // 初步判断    
+    float3 cylinderDir = normalize(cylinderEnd - cylinderStart);  
+    float cylDotRay = dot(rayDirection, cylinderDir);
+    bool isSameDir = cylDotRay > 0;
+    float height = length(cylinderEnd - cylinderStart);
+
+    // 默认未击中返回
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    // 求射线与圆柱中轴线的最短距离，快速筛选需要进一步求交的射线
+    float cylinderLineDist = RMGetCylinderDist(rayOrigin, rayDirection, cylinderStart, cylinderEnd, cylinderRadius);
+    if (cylinderLineDist > cylinderRadius) return hitProp;
+
+    float halfCrossLen = sqrt(cylinderRadius * cylinderRadius - cylinderLineDist * cylinderLineDist);
+    // 计算两射线最短距离坐标
+    float2 crossProp = calcTwoLineCrossVec(cylinderStart, cylinderDir, rayOrigin, rayDirection);   
+
+    // 根据夹角与方向快速判断是否击中圆柱截面
+    HitProperties sphereStartHit = HitSphere(rayOrigin, rayDirection, 
+        cylinderStart, cylinderDir, cylinderRadius);
+    HitProperties sphereEndHit = HitSphere(rayOrigin, rayDirection, 
+        cylinderEnd, -cylinderDir, cylinderRadius);
+    if (sphereStartHit.isHit && sphereEndHit.isHit) {
+        if (length(sphereStartHit.hitPoint - rayOrigin) < length(sphereEndHit.hitPoint - rayOrigin)) {
+            return sphereStartHit;
+        }
+        else return sphereEndHit;
+    }
+    else if (sphereStartHit.isHit) return sphereStartHit;
+    else if (sphereEndHit.isHit) return sphereEndHit;
     
     // 根据theta求得射线在圆柱中轴线方向的偏移距离
     float theta = acos(abs(cylDotRay));
@@ -329,15 +461,23 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
         float3(halfCLength + expandRadius, 0, halfCWidth + expandRadius),
         float3(halfCLength + expandRadius, 0, -halfCWidth - expandRadius)       
     };
-    for(i = 0; i < 4; ++i) {
-        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
-            ObjectToWorldNoScale(horiCylPointList[i]), ObjectToWorldNoScale(horiCylPointList[(i + 1) % 4]), secRadius);
-        if (hit.isHit) {
-            if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
-                horiHit = hit;
+    float vertStep = cHeight / (verticalSeg + 1);
+    for(int j = 1; j <= verticalSeg; ++j) {
+        for(i = 0; i < 4; ++i) {
+            HitProperties hit = CylinderHitSphere(
+                rayOrigin, rayDirection, 
+                ObjectToWorldNoScale(horiCylPointList[i] + float3(0, halfCHeight - j * vertStep, 0)), 
+                ObjectToWorldNoScale(horiCylPointList[(i + 1) % 4] + float3(0, halfCHeight - j * vertStep, 0)), 
+                secRadius
+            );
+            if (hit.isHit) {
+                if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
+                    horiHit = hit;
+                }
             }
         }
     }
+    
     if (vertHit.isHit && horiHit.isHit) {
         if(length(vertHit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) 
             hitProp = vertHit;
@@ -480,6 +620,8 @@ HitProperties NewtonianTorusHit(float3 rayOrigin, float3 rayDirection,
 
     return hitProp;
 }
+
+
 
 
 #endif

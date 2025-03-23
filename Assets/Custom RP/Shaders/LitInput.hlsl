@@ -40,6 +40,8 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float4, _ColumnLengthWidthHeight)
     UNITY_DEFINE_INSTANCED_PROP(float, _VerticalSegments)
     UNITY_DEFINE_INSTANCED_PROP(float, _SecondaryCylinderRadius)
+    // Quadratic Curve
+    UNITY_DEFINE_INSTANCED_PROP(float4, _QuadraticConfig)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxSteps)
     // UNITY_DEFINE_INSTANCED_PROP(float, _SurfDist)
     // UNITY_DEFINE_INSTANCED_PROP(float, _MaxDist)
@@ -203,5 +205,8 @@ float GetVerticalSegments (InputConfig c) {
 }
 float GetSecondaryCylinderRadius (InputConfig c) {
     return INPUT_PROP(_SecondaryCylinderRadius);
+}
+float4 GetQuadraticConfig (InputConfig c) {
+    return INPUT_PROP(_QuadraticConfig);
 }
 #endif
