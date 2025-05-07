@@ -117,7 +117,7 @@ Material:
     - _RayMarchingQuadra: 0
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001
-    - _SecondaryCylinderRadius: 0.07
+    - _SecondaryCylinderRadius: 0.05
     - _Shadows: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0

@@ -621,7 +621,134 @@ HitProperties NewtonianTorusHit(float3 rayOrigin, float3 rayDirection,
     return hitProp;
 }
 
+// ---------------------------------补充数值求解方法-----------------------------------
+bool IntersectCylinder(float3 O, float3 D, float3 A, float3 B, float r, out float t, out float3 P, out float3 normal) {
+    float3 C = B - A;
+    float lenC_sq = dot(C, C);
+    if (lenC_sq < 1e-6) return false; // 圆柱退化为点，无交点
 
+    float lenC = sqrt(lenC_sq);
+    float3 C_dir = C / lenC;
+    float3 OA = O - A;
+
+    // 侧面相交测试
+    float3 cross_OA_C = cross(OA, C);
+    float3 cross_D_C = cross(D, C);
+    float a = dot(cross_D_C, cross_D_C);
+    float b = 2 * dot(cross_OA_C, cross_D_C);
+    float c = dot(cross_OA_C, cross_OA_C) - r * r * lenC_sq;
+    float delta = b * b - 4 * a * c;
+
+    float s_side = -1;
+    float t_proj = 0;
+
+    if (delta >= 0) {
+        float sqrt_delta = sqrt(delta);
+        float s0 = (-b - sqrt_delta) / (2 * a);
+        float s1 = (-b + sqrt_delta) / (2 * a);
+
+        // 检查两个解的有效性
+        [unroll]
+        for (int i = 0; i < 2; i++) {
+            float s = (i == 0) ? s0 : s1;
+            if (s >= 0) {
+                float3 P_side = O + s * D;
+                float proj = dot(P_side - A, C);
+                float t_proj_side = proj / lenC_sq;
+                if (t_proj_side >= 0 && t_proj_side <= 1) {
+                    if (s_side < 0 || s < s_side) {
+                        s_side = s;
+                        t_proj = t_proj_side;
+                    }
+                }
+            }
+        }
+    }
+
+    // 底面A（起点端面）相交测试
+    float s_capA = -1;
+    float3 capA_normal = -C_dir;
+    float denomA = dot(D, capA_normal);
+    if (abs(denomA) > 1e-6) {
+        float s = dot(A - O, capA_normal) / denomA;
+        if (s >= 0) {
+            float3 P_cap = O + s * D;
+            float3 AP = P_cap - A;
+            if (dot(AP, AP) <= r * r) {
+                s_capA = s;
+            }
+        }
+    }
+
+    // 底面B（终点端面）相交测试
+    float s_capB = -1;
+    float3 capB_normal = C_dir;
+    float denomB = dot(D, capB_normal);
+    if (abs(denomB) > 1e-6) {
+        float s = dot(B - O, capB_normal) / denomB;
+        if (s >= 0) {
+            float3 P_cap = O + s * D;
+            float3 BP = P_cap - B;
+            if (dot(BP, BP) <= r * r) {
+                s_capB = s;
+            }
+        }
+    }
+
+    // 确定最近的交点
+    float min_s = -1;
+    bool hit_side = false, hit_capA = false, hit_capB = false;
+
+    if (s_side >= 0) {
+        min_s = s_side;
+        hit_side = true;
+    }
+    if (s_capA >= 0 && (s_capA < min_s || min_s < 0)) {
+        min_s = s_capA;
+        hit_side = false;
+        hit_capA = true;
+        hit_capB = false; // 确保只选择一个端面
+    }
+    if (s_capB >= 0 && (s_capB < min_s || min_s < 0)) {
+        min_s = s_capB;
+        hit_side = false;
+        hit_capB = true;
+        hit_capA = false; // 确保只选择一个端面
+    }
+
+    if (min_s < 0) return false; // 无交点
+
+    t = min_s;
+    P = O + t * D;
+
+    // 计算法线方向
+    if (hit_side) {
+        float3 Q = A + t_proj * C; // 轴线上的投影点
+        normal = normalize(P - Q); // 侧面法线垂直于轴线
+    } else if (hit_capA) {
+        normal = capA_normal; // 底面A法线朝外
+    } else {
+        normal = capB_normal; // 底面B法线朝外
+    }
+
+    return true;
+}
+
+HitProperties IntersectCylinderNumerical(float3 rayOrigin, float3 rayDirection, 
+    float3 cylinderStart, float3 cylinderEnd, float cylinderRadius){
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    float t;
+    float3 P, normal;
+    hitProp.isHit = IntersectCylinder(rayOrigin, rayDirection, 
+        cylinderStart, cylinderEnd, cylinderRadius, t, P, normal);
+    hitProp.hitPoint = P;
+    hitProp.hitNormal = normal;
+    return hitProp;
+}
 
 
 #endif

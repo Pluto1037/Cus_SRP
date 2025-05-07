@@ -16,14 +16,14 @@ MonoBehaviour:
   bloom:
     ignoreRenderScale: 1
     maxIterations: 3
-    downscaleLimit: 6
+    downscaleLimit: 18
     bicubicUpsampling: 0
-    threshold: 0.97
+    threshold: 0.77
     thresholdKnee: 0.05
-    intensity: 0.3
+    intensity: 0
     fadeFireflies: 1
     mode: 1
-    scatter: 0.21
+    scatter: 0.208
   colorAdjustments:
     postExposure: 0.5
     contrast: 3
