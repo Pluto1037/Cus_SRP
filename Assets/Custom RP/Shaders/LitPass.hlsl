@@ -118,7 +118,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 			TransformObjectToWorld(GetCylinderStart(config)), 
 			TransformObjectToWorld(GetCylinderEnd(config)), 
 			GetCylinderRadius(config)
-		);
+		); 
 		// HitProperties cylinderHitProp = CylinderHit(
 		// 	rayOrigin, rayDirection, 
 		// 	TransformObjectToWorld(GetCylinderStart(config)), 

@@ -348,6 +348,22 @@ float3 WorldToObjectNoScaleDir(float3 dir)
 {
     return mul((float3x3)_InverseRotationMatrix, dir);
 }
+void ProjLineIntersectWithBorder(
+    float2 originProj, 
+    float dirSlope,
+    float2 gridSize,
+    float intervalSize,
+    out float grazeIStart,
+    out float grazeIEnd
+    )
+{
+    float bottom = originProj.x + (-gridSize.y * 0.5f - originProj.y) * dirSlope + gridSize.x * 0.5f;
+    float top = originProj.x + (gridSize.y * 0.5f - originProj.y) * dirSlope + gridSize.x * 0.5f;
+    float minEndian = clamp(min(bottom, top), 0, gridSize.x);
+    float maxEndian = clamp(max(bottom, top), 0, gridSize.x);
+    grazeIStart = int(minEndian / intervalSize); 
+    grazeIEnd = int(maxEndian / intervalSize);
+}
 // 根据单根圆柱交点计算函数，计算命中矩阵的交点信息
 // Grid的中心默认在物体的0,0,0
 HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
@@ -369,10 +385,39 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
     float tempDist = 0;
     float3 cylinderStart, cylinderEnd;
 
+    float3 mRayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    float3 mRayOrigin = WorldToObjectNoScale(rayOrigin);
+    float3 mRayOriginProjX = float3(mRayOrigin.x, cylinderRadius, mRayOrigin.z);
+    float3 mRayDirectionProjX = float3(mRayDirection.x, 0.0f, mRayDirection.z);
+    float3 hitPoint;
+    float t = (float3(0, cylinderRadius, 0) - mRayOrigin.y) / mRayDirection.y;
+    hitPoint.x = (mRayOrigin + t * mRayDirection).x;
+    hitPoint.x = hitPoint.x + gridSize.x * 0.5;    
+    t = (float3(0, -cylinderRadius, 0) - mRayOrigin.y) / mRayDirection.y;
+    hitPoint.z = (mRayOrigin + t * mRayDirection).z;
+    hitPoint.z = hitPoint.z + gridSize.y * 0.5;
+    int iStart = int(hitPoint.x / xSize);
+    int iEnd = iStart;  
+    float grazeIStart, grazeIEnd;
+    ProjLineIntersectWithBorder(
+        mRayOriginProjX.xz, 
+        mRayDirectionProjX.x / mRayDirectionProjX.z,
+        gridSize.xy,
+        xSize,
+        grazeIStart,
+        grazeIEnd
+    );
+    if (abs(mRayDirection.y) < 0.2f)
+    {
+        iStart = grazeIStart;
+        iEnd = grazeIEnd;
+    }
+
     int i;
 
     // x方向遍历
-    for (i = 0; i < int(gridSeg.x); i++)
+    // for (i = 0; i < int(gridSeg.x); i++)
+    for (i = max(0, iStart - 1); i <= min(int(gridSeg.x - 1), iEnd + 1); i++)
     {
         cylinderStart = ObjectToWorldNoScale(
             float3(xStart + i * xSize, cylinderRadius, yStart)
@@ -390,8 +435,27 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
             }
         }
     }
+    int jStart = int(hitPoint.z / ySize);
+    int jEnd = jStart;
+
+    float grazeJStart, grazeJEnd;
+    ProjLineIntersectWithBorder(
+        mRayOriginProjX.zx, 
+        mRayDirectionProjX.z / mRayDirectionProjX.x,
+        gridSize.yx,
+        ySize,
+        grazeJStart,
+        grazeJEnd
+    );
+    if (abs(mRayDirection.y) < 0.2f)
+    {
+        jStart = grazeJStart;
+        jEnd = grazeJEnd;
+    }
+
     // y方向遍历，紧贴x方向下层
-    for (i = 0; i < int(gridSeg.y); i++)
+    // for (i = 0; i < int(gridSeg.y); i++)
+    for (i = max(0, jStart - 1); i <= min(int(gridSeg.y - 1), jEnd + 1); i++)
     {
         cylinderStart = ObjectToWorldNoScale(
             float3(xStart, -cylinderRadius, yStart + i * ySize)
@@ -664,6 +728,7 @@ bool IntersectCylinder(float3 O, float3 D, float3 A, float3 B, float r, out floa
             }
         }
     }
+    else return false; // 无交点
 
     // 底面A（起点端面）相交测试
     float s_capA = -1;

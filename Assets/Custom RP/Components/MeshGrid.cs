@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class MeshPipe : MonoBehaviour
+public class MeshGrid : MonoBehaviour
 {
-    static int rowNum = 200;
+    static int rowNum = 10;
     static int instancedNumber = rowNum * rowNum;
+
+    static int
+        worldPositionId = Shader.PropertyToID("_WorldPosition");
 
     [SerializeField]
     Mesh mesh = default;
@@ -26,15 +29,15 @@ public class MeshPipe : MonoBehaviour
 
     void Awake()
     {
-        Vector3 scale = new Vector3(1, 4, 1);
+        Vector3 scale = new Vector3(20, 1, 20);
         Vector3 offset = new Vector3(0, 10, 0);
-        float dist = 0.5f;
+        float dist = 10.0f;
         for (int i = 0; i < matrices.Length; i++)
         {
             offset.x = dist * i % rowNum * 2;
             offset.z = dist * i / rowNum * 2;
             matrices[i] = Matrix4x4.TRS(
-                transform.position + offset,
+                transform.position,
                 Quaternion.Euler(0, 0, 0),
                 scale
             );
@@ -56,6 +59,7 @@ public class MeshPipe : MonoBehaviour
             // block.SetVectorArray(baseColorId, baseColors);
             // block.SetFloatArray(metallicId, metallic);
             // block.SetFloatArray(smoothnessId, smoothness);
+            block.SetVector(worldPositionId, transform.position);
             if (!lightProbeVolume)
             {
                 // 存储实例位置，用于光照探针插值

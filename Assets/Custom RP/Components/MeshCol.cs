@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class MeshPipe : MonoBehaviour
+public class MeshCol : MonoBehaviour
 {
-    static int rowNum = 200;
+    static int rowNum = 300;
     static int instancedNumber = rowNum * rowNum;
 
     [SerializeField]
@@ -26,7 +26,7 @@ public class MeshPipe : MonoBehaviour
 
     void Awake()
     {
-        Vector3 scale = new Vector3(1, 4, 1);
+        Vector3 scale = new Vector3(1, 1, 1);
         Vector3 offset = new Vector3(0, 10, 0);
         float dist = 0.5f;
         for (int i = 0; i < matrices.Length; i++)
