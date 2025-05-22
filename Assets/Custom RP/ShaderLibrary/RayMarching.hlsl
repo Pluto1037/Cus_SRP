@@ -7,6 +7,7 @@ struct HitProperties {
     bool isHit;
     float3 hitPoint;
     float3 hitNormal;
+    float3 testColor;
 };
 
 // 定义球体SDF，半径为1
@@ -477,6 +478,177 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
     return hitProp;
 }
 // Column柱状计算
+bool intersectRayAABB(
+    float3 rayOrigin, float3 rayDir,
+    float3 boxMin, float3 boxMax,
+    out float tNear, out float tFar
+) {
+    float3 invDir = 1.0 / rayDir;
+    float3 t0s = (boxMin - rayOrigin) * invDir;
+    float3 t1s = (boxMax - rayOrigin) * invDir;
+
+    float3 tsmaller = min(t0s, t1s);
+    float3 tbigger  = max(t0s, t1s);
+
+    tNear = max(max(tsmaller.x, tsmaller.y), tsmaller.z);
+    tFar  = min(min(tbigger.x, tbigger.y), tbigger.z);
+
+    if (tFar < max(tNear, 0.0))
+        return false;
+
+    return true;
+}
+
+float RayPlaneIntersect(
+    float3 rayOrigin, float3 rayDirection,
+    float3 planeNormal, float3 planePos
+){
+    float denom = dot(planeNormal, rayDirection);
+    float t = dot(planePos - rayOrigin, planeNormal) / denom;
+    return t;
+}
+
+float TestPointWithLineXZ(float2 A, float2 B, float2 P) 
+{
+    float2 v1 = B - A;
+    float2 v2 = P - A;
+    float s = sign(v1.x * v2.y - v1.y * v2.x);
+    return s == 0.0f ? 1.0f : s;
+}
+
+bool ComputeIntervalWithH(
+    float y1, 
+    float y2, 
+    float expandRadius,
+    float halfCHeight,
+    float vertStep,
+    out int index1, 
+    out int index2)
+{
+    float pH = clamp(y1, -halfCHeight + expandRadius, halfCHeight + expandRadius) + halfCHeight - expandRadius;
+    float pOffsetH = clamp(y2, -halfCHeight + expandRadius, halfCHeight + expandRadius) + halfCHeight - expandRadius;
+    int index = floor(pH / (vertStep));
+    int indexOffset = floor(pOffsetH / (vertStep));
+
+    bool isSameIndex = index == indexOffset;
+    float rH = pH - index * vertStep;
+    float rOffsetH = pOffsetH - indexOffset * vertStep;
+    float minH = min(rH, rOffsetH);
+    float maxH = max(rH, rOffsetH);
+
+    bool isIncluded = maxH <= (vertStep - 2 * expandRadius);
+    if (isIncluded && isSameIndex) {
+        return false;
+    }
+
+    index1 = index + 1;
+    index2 = indexOffset + 1;
+    return true;
+}
+
+HitProperties PlaneCylinderHit(
+    float3 rayOrigin, 
+    float3 rayDirection, 
+    float tNear,
+    float tFar,
+    int side, 
+    float expandRadius,
+    float halfCHeight,
+    float halfCLength,
+    float halfCWidth,
+    float vertStep,
+    float secRadius,
+    int verticalSeg)
+{
+    HitProperties horiHit;
+    horiHit.isHit = false;
+    float3 horiCylPointList[4] = { 
+        float3(-halfCLength - expandRadius, 0, -halfCWidth - expandRadius), 
+        float3(-halfCLength - expandRadius, 0, halfCWidth + expandRadius),
+        float3(halfCLength + expandRadius, 0, halfCWidth + expandRadius),
+        float3(halfCLength + expandRadius, 0, -halfCWidth - expandRadius)       
+    };
+
+    float3 mappingNormal[4] = {
+        float3(0, 0, -1), float3(-1, 0, 0), 
+        float3(0, 0, 1), float3(1, 0, 0)
+    };
+
+    float3 normal = mappingNormal[side];
+
+    float3 mRayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    float3 mRayOrigin = WorldToObjectNoScale(rayOrigin);
+
+    int jStart, jEnd;
+    //与平面平行
+    if (abs(dot(mRayDirection, normal)) < 0.06f) {
+        float pNearY = (mRayOrigin + mRayDirection * tNear).y;
+        float pFarY = (mRayOrigin + mRayDirection * tFar).y;
+        if (!ComputeIntervalWithH(pNearY, pFarY, expandRadius, halfCHeight, vertStep, jStart, jEnd))
+        {
+            return horiHit;
+        }
+    }
+    else {
+        float3 boundingBox[4][2] = {
+            {
+                float3(-halfCLength - 2 * expandRadius, -halfCHeight, -halfCWidth - 2 * expandRadius),
+                float3(halfCLength + 2 * expandRadius, halfCHeight, -halfCWidth)
+            },
+            {
+                float3(-halfCLength - 2 * expandRadius, -halfCHeight, -halfCWidth - 2 * expandRadius),
+                float3(-halfCLength, halfCHeight, halfCWidth + 2 * expandRadius)
+            },
+            {
+                float3(-halfCLength - 2 * expandRadius, -halfCHeight, halfCWidth),
+                float3(halfCLength + 2 * expandRadius, halfCHeight, halfCWidth + 2 * expandRadius)
+            },
+            {
+                float3(halfCLength, -halfCHeight, -halfCWidth - 2 * expandRadius),
+                float3(halfCLength + 2 * expandRadius, halfCHeight, halfCWidth + 2 * expandRadius)
+            },
+        };
+
+        float3 lw = float3(halfCLength + expandRadius, 0, halfCWidth + expandRadius);
+        float3 offset = float3(expandRadius, 0, expandRadius);
+        float sig = -sign(dot(mRayDirection, normal));
+        float3 nearPlanePos = normal * lw + offset * normal * sig;
+        float3 farPlanePos = normal * lw + offset * normal * (-sig);
+        float3 bMin = boundingBox[side][0];
+        float3 bMax = boundingBox[side][1];
+        intersectRayAABB(mRayOrigin, mRayDirection, bMin, bMax, tNear, tFar);
+        float pNearY = (mRayOrigin + mRayDirection * tNear).y;
+        float pFarY = (mRayOrigin + mRayDirection * tFar).y;
+
+        if (!ComputeIntervalWithH(pNearY, pFarY, expandRadius, halfCHeight, vertStep, jStart, jEnd)){
+            return horiHit;
+        }
+    }
+
+    // jStart = 1;
+    // jEnd = verticalSeg;
+    int dir = sign(dot(mRayDirection, float3(0, 1, 0)));
+
+    int index = (side + 3) % 4;
+    jStart = min(jStart, jEnd);
+    jEnd = max(jStart, jEnd);
+    for (int j = max(1, jStart - 1); j <= min(verticalSeg, jEnd + 1); ++j) {
+    // for (int j = max(1, jStart - 1); j <= min(verticalSeg, jStart + 1); ++j) {
+        HitProperties hit = CylinderHitSphere(
+            rayOrigin, rayDirection, 
+            ObjectToWorldNoScale(horiCylPointList[index] + float3(0, -halfCHeight + j * vertStep, 0)), 
+            ObjectToWorldNoScale(horiCylPointList[(index + 1) % 4] + float3(0, -halfCHeight + j * vertStep, 0)), 
+            secRadius
+        ); // 0->(-1,0,0), 1->(0,0,1), 2->(1,0,0), 3->(0,0,-1)
+        if (hit.isHit) {
+            if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
+                horiHit = hit;
+            }
+        }
+    }
+    return horiHit;
+}
+// 利用前面的函数预计算
 HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection, 
     float3 columnLWH, float vertSeg, float cylinderRadius, float secRadius)
 {
@@ -493,6 +665,7 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
     float halfCLength = cLength * 0.5;
     float halfCWidth = cWidth * 0.5;
     float halfCHeight = cHeight * 0.5;
+
     // 判断是否命中四根垂直圆柱
     float3 vertCylStartList[4] = {
         float3(-halfCLength, halfCHeight, -halfCWidth),
@@ -517,31 +690,111 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
         }
     }
 
+
+    // 预计算AABB
+    float3 mRayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    float3 mRayOrigin = WorldToObjectNoScale(rayOrigin);
+    
     float expandRadius = cylinderRadius + secRadius;
-    // 判断是否命中横向框
-    float3 horiCylPointList[4] = {
-        float3(-halfCLength - expandRadius, 0, -halfCWidth - expandRadius),
-        float3(-halfCLength - expandRadius, 0, halfCWidth + expandRadius),
-        float3(halfCLength + expandRadius, 0, halfCWidth + expandRadius),
-        float3(halfCLength + expandRadius, 0, -halfCWidth - expandRadius)       
-    };
     float vertStep = cHeight / (verticalSeg + 1);
-    for(int j = 1; j <= verticalSeg; ++j) {
-        for(i = 0; i < 4; ++i) {
-            HitProperties hit = CylinderHitSphere(
-                rayOrigin, rayDirection, 
-                ObjectToWorldNoScale(horiCylPointList[i] + float3(0, halfCHeight - j * vertStep, 0)), 
-                ObjectToWorldNoScale(horiCylPointList[(i + 1) % 4] + float3(0, halfCHeight - j * vertStep, 0)), 
-                secRadius
-            );
+
+    float3 OuterTestPoint[4] = {
+        float3(-halfCLength -  2 * expandRadius, 0, -halfCWidth - 2 * expandRadius), 
+        float3(-halfCLength - 2 * expandRadius, 0, halfCWidth + 2 * expandRadius),
+        float3(halfCLength + 2 * expandRadius, 0, halfCWidth + 2 * expandRadius),
+        float3(halfCLength + 2 * expandRadius, 0, -halfCWidth - 2 * expandRadius)       
+    };
+
+    float3 InnerTestPoint[4] = {
+        float3(-halfCLength, 0, -halfCWidth), 
+        float3(-halfCLength, 0, halfCWidth),
+        float3(halfCLength, 0, halfCWidth),
+        float3(halfCLength, 0, -halfCWidth)       
+    };
+
+    float3 bMin = float3(-halfCLength - 2 * expandRadius, -halfCHeight, -halfCWidth - 2 * expandRadius);
+    float3 bMax = float3(halfCLength + 2 * expandRadius, halfCHeight, halfCWidth + 2 * expandRadius);
+    float tNear, tFar;
+    // 计算交点
+    // if (!intersectRayAABB(mRayOrigin, mRayDirection, bMin, bMax, tNear, tFar)) return hitProp;
+    intersectRayAABB(mRayOrigin, mRayDirection, bMin, bMax, tNear, tFar);
+
+    int mappingSide[16][3] = {
+        {-1, -1, -1},  //0
+        {-1, -1, -1},  //1
+        {-1, -1, -1},  //2
+        {0, 1, -1},    //3
+        {-1, -1, -1},  //4
+        {0, 2, -1},    //5
+        {1, 2, -1},    //6
+        {0, 1, 2},     //7
+        {-1, -1, -1},  //8
+        {0, 3, -1},    //9
+        {1, 3, -1},    //10
+        {0, 1, 3},     //11
+        {2, 3, -1},    //12
+        {0, 2, 3},     //13
+        {1, 2, 3},     //14
+        {-1, -1, -1}   //15
+    };
+
+    int IntersectSide[16] = {
+        0, 3, 6, 5,
+        12, 0, 10, 9,
+        9, 10, 0, 12,
+        5, 6, 3, 0
+        // {4, 4}, {0, 1}, {1, 2}, {0, 2},
+        // {2, 3}, {-1, -1}, {1, 3}, {0, 3},
+        // {3, 0}, {3, 1}, {-1, -1}, {3, 2},
+        // {2, 0}, {2, 1}, {1, 0}, {4, 4}
+    };  
+    //outerState,innerState分别是内外4点的测试情况 每个点从xOz平面的左下角编码
+    //二进制位从低位到高位分别对应编号为0，1，2，3的点的测试情况，点在直线的左侧时，对应的二进制位为1，否则为0
+
+    //IntersectSide数组是outerState, innerState对应的面编码后的值。例如，编码后的值为3，转化为二进制是0011，实际上穿过的面就是0和1号面
+
+    //mappingSide数组将IntersectSide映射为需要求交的面的数字编号。例如，index = 3时，转化为二进制是0011，对应0和1号面，所以mappingSide[3]存0，1
+    uint outerState = 0, innerState = 0;
+    
+    [unroll] 
+    for (i = 0; i < 4; ++i) {
+        float signVal = TestPointWithLineXZ(mRayOrigin.xz,mRayOrigin.xz + mRayDirection.xz, OuterTestPoint[i].xz);
+        signVal = signVal * 0.5f + 0.5f;
+        outerState |= (1 << i) * int(signVal);
+        signVal = TestPointWithLineXZ(mRayOrigin.xz,mRayOrigin.xz + mRayDirection.xz, InnerTestPoint[i].xz);
+        signVal = signVal * 0.5f + 0.5f;
+        innerState |= (1 << i) * int(signVal);
+    }
+
+    int sidesIn = IntersectSide[innerState];
+    int sidesOut = IntersectSide[outerState];
+    int sidesInOut = sidesIn | sidesOut;                // 取相关面的并集
+    int sideNum = lerp(2, 3, sign(sidesIn ^ sidesOut)); // 0 -> 2 >1 -> 3 //如果sidesIn == sidesOut，那么需要测试的面的个数为2个，否则为3个
+
+    if (sidesIn == 0 || sidesIn == 15){                 //内部4个点测试结果为1111和0000时的情况
+        [unroll]
+        for (i = 0; i < 4; ++i) {
+            HitProperties hit = PlaneCylinderHit(rayOrigin, rayDirection, tNear, tFar, i, expandRadius, halfCHeight, halfCLength, halfCWidth, vertStep, secRadius, verticalSeg);
+            if (hit.isHit) {
+                if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
+                horiHit = hit;
+                }
+            }
+        }
+    }
+    else {
+        [unroll]
+        for (i = 0; i < sideNum; ++i) {
+            int side = mappingSide[sidesInOut][i];
+            HitProperties hit = PlaneCylinderHit(rayOrigin, rayDirection, tNear, tFar, side, expandRadius, halfCHeight, halfCLength, halfCWidth, vertStep, secRadius, verticalSeg);
             if (hit.isHit) {
                 if (!horiHit.isHit || length(hit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) {
                     horiHit = hit;
                 }
             }
         }
-    }
-    
+    } 
+        
     if (vertHit.isHit && horiHit.isHit) {
         if(length(vertHit.hitPoint - rayOrigin) < length(horiHit.hitPoint - rayOrigin)) 
             hitProp = vertHit;
@@ -550,6 +803,8 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
     }
     else if (vertHit.isHit) hitProp = vertHit;
     else if (horiHit.isHit) hitProp = horiHit;
+
+    // hitProp.testColor = float3((min(verticalSeg, jEnd + 1) - max(1, jStart - 1)) *1.0 / 9 * 255, 0, 0);
 
     return hitProp;
 }

@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 public class MeshColumn : MonoBehaviour
 {
-    static int rowNum = 5;
+    static int rowNum = 10;
     static int instancedNumber = rowNum * rowNum;
 
     static int

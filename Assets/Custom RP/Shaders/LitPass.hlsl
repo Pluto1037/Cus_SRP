@@ -195,6 +195,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		// 启用RayMarching后，覆盖世界坐标和法线
 		input.positionWS = columnHitProp.hitPoint;
 		input.normalWS = columnHitProp.hitNormal;
+		// base.rgb = columnHitProp.testColor;
 	#endif
 	#if defined(_RAY_MARCHING_QUADRA)
 		float3 rayOrigin = input.positionWS;		
@@ -204,7 +205,7 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		HitProperties phantomHitProp = PhantomTestHit(
 			GetQuadraticConfig(config),
 			rayOrigin, rayDirection, 
-			GetArcRadius(config),
+			1.0f,
 			GetCylinderRadius(config)
 		);
 		if(!phantomHitProp.isHit)

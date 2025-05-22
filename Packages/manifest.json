@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.monitor1394.xcharts": "https://github.com/XCharts-Team/XCharts.git",
     "com.unity.collab-proxy": "2.5.2",
     "com.unity.feature.development": "1.0.1",
     "com.unity.ide.visualstudio": "2.0.22",

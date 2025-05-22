@@ -26,7 +26,7 @@ MonoBehaviour:
       relativeThreshold: 0.166
       subpixelBlending: 0.75
       quality: 0
-  useDynamicBatching: 0
+  useDynamicBatching: 1
   useGPUInstancing: 1
   useSRPBatcher: 0
   useLightsPerObject: 1
