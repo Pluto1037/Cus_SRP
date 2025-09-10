@@ -12,6 +12,7 @@ Shader "Custom RP/Lit"
         // Ray Marching材质
         [HideInInspector][Toggle(_RAY_MARCHING)] _RayMarching("Enable Ray Marching", Float) = 0 // Ray Marching开关
         [HideInInspector][Toggle(_RAY_MARCHING_GRID)] _RayMarchingGrid("Enable Ray Marching Grid", Float) = 0
+        [HideInInspector][Toggle(_RAY_MARCHING_PARAL)] _RayMarchingParal("Enable Ray Marching Paral", Float) = 0
         [HideInInspector][Toggle(_RAY_MARCHING_ARC)] _RayMarchingArc("Enable Ray Marching Arc", Float) = 0
         [HideInInspector][Toggle(_RAY_MARCHING_COLUMN)] _RayMarchingColumn("Enable Ray Marching Column", Float) = 0
         [HideInInspector][Toggle(_RAY_MARCHING_QUADRA)] _RayMarchingQuadra("Enable Ray Marching Quadra", Float) = 0
@@ -91,6 +92,7 @@ Shader "Custom RP/Lit"
 
             #pragma shader_feature _RAY_MARCHING // 是否RAY MARCHING材质
             #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
+            #pragma shader_feature _RAY_MARCHING_PARAL // 一组平行的圆柱RM
             #pragma shader_feature _RAY_MARCHING_ARC // 圆弧RM
             #pragma shader_feature _RAY_MARCHING_COLUMN // 柱状RM
             #pragma shader_feature _RAY_MARCHING_QUADRA // 二次曲线RM
@@ -120,6 +122,7 @@ Shader "Custom RP/Lit"
 			#pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
             #pragma shader_feature _RAY_MARCHING // 是否RAY MARCHING材质
             #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
+            #pragma shader_feature _RAY_MARCHING_PARAL // 网格状的圆柱RM
             #pragma shader_feature _RAY_MARCHING_ARC // 圆弧RM
             #pragma shader_feature _RAY_MARCHING_COLUMN // 柱状RM
             #pragma shader_feature _RAY_MARCHING_QUADRA // 二次曲线RM

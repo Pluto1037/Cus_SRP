@@ -31,6 +31,9 @@ struct Varyings {
 	#if defined(_RAY_MARCHING_GRID)
 		float3 positionWS : VAR_POSITION; // 世界空间位置
 	#endif
+	#if defined(_RAY_MARCHING_PARAL)
+		float3 positionWS : VAR_POSITION; // 世界空间位置
+	#endif
 	#if defined(_RAY_MARCHING_ARC)
 		float3 positionWS : VAR_POSITION; // 世界空间位置
 	#endif
@@ -56,6 +59,9 @@ Varyings ShadowCasterPassVertex (Attributes input) {
 		output.positionWS = positionWS;
 	#endif
 	#if defined(_RAY_MARCHING_GRID)
+		output.positionWS = positionWS;
+	#endif
+	#if defined(_RAY_MARCHING_PARAL)
 		output.positionWS = positionWS;
 	#endif
 	#if defined(_RAY_MARCHING_ARC)
@@ -123,6 +129,24 @@ float ShadowCasterPassFragment (Varyings input) : SV_DEPTH {
 		}
 		else 	discard; // 非单个平行光不渲染阴影贴图
 		HitProperties gridHitProp = GridHit(
+			rayOrigin, rayDirection, 
+			GetGridWidthHeight(config),
+			GetWidthHeightSegments(config), 
+			GetCylinderRadius(config)
+		);
+		if(gridHitProp.isHit) {
+			input.positionCS_SS = TransformWorldToHClip(gridHitProp.hitPoint);
+		}
+		else	discard;
+	#endif
+	#if defined(_RAY_MARCHING_PARAL)
+		float3 rayOrigin, rayDirection;
+		if(_WorldSpaceLightPos0.z != -1) {
+			rayOrigin = input.positionWS;
+			rayDirection = normalize(_WorldSpaceLightPos0.xyz);
+		}
+		else 	discard; // 非单个平行光不渲染阴影贴图
+		HitProperties gridHitProp = ParalHit(
 			rayOrigin, rayDirection, 
 			GetGridWidthHeight(config),
 			GetWidthHeightSegments(config), 

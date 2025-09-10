@@ -15,13 +15,14 @@ Material:
   - _RAY_MARCHING_COLUMN
   - _RECEIVE_SHADOWS
   m_InvalidKeywords:
-  - _SHADOWS_ON
+  - _SHADOWS_OFF
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses: []
+  disabledShaderPasses:
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -118,7 +119,7 @@ Material:
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001
     - _SecondaryCylinderRadius: 0.05
-    - _Shadows: 0
+    - _Shadows: 3
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

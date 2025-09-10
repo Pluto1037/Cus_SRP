@@ -21,7 +21,7 @@ public class CustomShaderGUI : ShaderGUI
     Vector3 cylEnd;
     float cylRadius;
 
-    string[] options = new string[] { "Single", "Grid", "Arc", "Column", "Quadra" };
+    string[] options = new string[] { "Single", "Grid", "Parallel", "Arc", "Column", "Quadra" };
 
     // 网格状分布参数
     int cylSelected;
@@ -61,19 +61,24 @@ public class CustomShaderGUI : ShaderGUI
             cylSelected = 1;
             showRT = true;
         }
-        else if (keyWords.Contains("_RAY_MARCHING_ARC"))
+        else if (keyWords.Contains("_RAY_MARCHING_PARAL"))
         {
             cylSelected = 2;
             showRT = true;
         }
-        else if (keyWords.Contains("_RAY_MARCHING_COLUMN"))
+        else if (keyWords.Contains("_RAY_MARCHING_ARC"))
         {
             cylSelected = 3;
             showRT = true;
         }
-        else if (keyWords.Contains("_RAY_MARCHING_QUADRA"))
+        else if (keyWords.Contains("_RAY_MARCHING_COLUMN"))
         {
             cylSelected = 4;
+            showRT = true;
+        }
+        else if (keyWords.Contains("_RAY_MARCHING_QUADRA"))
+        {
+            cylSelected = 5;
             showRT = true;
         }
         else
@@ -121,16 +126,22 @@ public class CustomShaderGUI : ShaderGUI
                     heightSegments = Mathf.Max(1, EditorGUILayout.IntField("Height Segments", heightSegments));
                     break;
                 case 2:
-                    arcRadius = Mathf.Max(0, EditorGUILayout.FloatField("Arc Radius", arcRadius));
+                    gridWidth = Mathf.Max(0, EditorGUILayout.FloatField("Grid Width", gridWidth));
+                    gridHeight = Mathf.Max(0, EditorGUILayout.FloatField("Grid Height", gridHeight));
+                    widthSegments = Mathf.Max(1, EditorGUILayout.IntField("Width Segments", widthSegments));
+                    heightSegments = 1; // 弃用一个方向的分段
                     break;
                 case 3:
+                    arcRadius = Mathf.Max(0, EditorGUILayout.FloatField("Arc Radius", arcRadius));
+                    break;
+                case 4:
                     columnLength = Mathf.Max(0, EditorGUILayout.FloatField("Column Length", columnLength));
                     columnWidth = Mathf.Max(0, EditorGUILayout.FloatField("Column Width", columnWidth));
                     columnHeight = Mathf.Max(0, EditorGUILayout.FloatField("Column Height", columnHeight));
                     verticalSegments = Mathf.Max(1, EditorGUILayout.IntField("Vertical Segments", verticalSegments));
                     secCylRadius = Mathf.Max(0, EditorGUILayout.FloatField("Secondary Cylinder Radius", secCylRadius));
                     break;
-                case 4:
+                case 5:
                     quadraConfig = EditorGUILayout.Vector3Field("Quadra Config", quadraConfig);
                     break;
                 default:
@@ -167,9 +178,10 @@ public class CustomShaderGUI : ShaderGUI
     {
         SetProperty("_RayMarching", "_RAY_MARCHING", showRT && cylSelected == 0);
         SetProperty("_RayMarchingGrid", "_RAY_MARCHING_GRID", showRT && cylSelected == 1);
-        SetProperty("_RayMarchingArc", "_RAY_MARCHING_ARC", showRT && cylSelected == 2);
-        SetProperty("_RayMarchingColumn", "_RAY_MARCHING_COLUMN", showRT && cylSelected == 3);
-        SetProperty("_RayMarchingQuadra", "_RAY_MARCHING_QUADRA", showRT && cylSelected == 4);
+        SetProperty("_RayMarchingParal", "_RAY_MARCHING_PARAL", showRT && cylSelected == 2);
+        SetProperty("_RayMarchingArc", "_RAY_MARCHING_ARC", showRT && cylSelected == 3);
+        SetProperty("_RayMarchingColumn", "_RAY_MARCHING_COLUMN", showRT && cylSelected == 4);
+        SetProperty("_RayMarchingQuadra", "_RAY_MARCHING_QUADRA", showRT && cylSelected == 5);
         MaterialProperty cylinderStart = FindProperty("_CylinderStart", properties, false);
         MaterialProperty cylinderEnd = FindProperty("_CylinderEnd", properties, false);
         MaterialProperty cylinderRadius = FindProperty("_CylinderRadius", properties, false);

@@ -477,6 +477,79 @@ HitProperties GridHit(float3 rayOrigin, float3 rayDirection,
 
     return hitProp;
 }
+HitProperties ParalHit(float3 rayOrigin, float3 rayDirection,
+    float2 gridSize, float2 gridSeg, float cylinderRadius)
+{
+    // 根据单根求交结果，计算整个Grid的交点信息
+    // 从Grid删减为Paral，默认gridSeg.y == 1
+    HitProperties hitProp;
+    hitProp.isHit = false;
+    hitProp.hitPoint = float3(0, 0, 0);
+    hitProp.hitNormal = float3(0, 0, 0);
+
+    // 放置的起点与间隔
+    float xStart = -gridSize.x * 0.5;
+    float yStart = -gridSize.y * 0.5;
+    float xSize = gridSeg.x > 1 ? gridSize.x / (gridSeg.x - 1) : 0;
+    float ySize = 0;
+
+    float minHitDist = FLT_MAX;
+    float tempDist = 0;
+    float3 cylinderStart, cylinderEnd;
+
+    float3 mRayDirection = normalize(WorldToObjectNoScaleDir(rayDirection));
+    float3 mRayOrigin = WorldToObjectNoScale(rayOrigin);
+    float3 mRayOriginProjX = float3(mRayOrigin.x, cylinderRadius, mRayOrigin.z);
+    float3 mRayDirectionProjX = float3(mRayDirection.x, 0.0f, mRayDirection.z);
+    float3 hitPoint;
+    float t = (float3(0, cylinderRadius, 0) - mRayOrigin.y) / mRayDirection.y;
+    hitPoint.x = (mRayOrigin + t * mRayDirection).x;
+    hitPoint.x = hitPoint.x + gridSize.x * 0.5;    
+    t = (float3(0, -cylinderRadius, 0) - mRayOrigin.y) / mRayDirection.y;
+    hitPoint.z = (mRayOrigin + t * mRayDirection).z;
+    hitPoint.z = hitPoint.z + gridSize.y * 0.5;
+    int iStart = int(hitPoint.x / xSize);
+    int iEnd = iStart;  
+    float grazeIStart, grazeIEnd;
+    ProjLineIntersectWithBorder(
+        mRayOriginProjX.xz, 
+        mRayDirectionProjX.x / mRayDirectionProjX.z,
+        gridSize.xy,
+        xSize,
+        grazeIStart,
+        grazeIEnd
+    );
+    if (abs(mRayDirection.y) < 0.2f)
+    {
+        iStart = grazeIStart;
+        iEnd = grazeIEnd;
+    }
+
+    int i;
+
+    // x方向遍历
+    // for (i = 0; i < int(gridSeg.x); i++)
+    for (i = max(0, iStart - 1); i <= min(int(gridSeg.x - 1), iEnd + 1); i++)
+    {
+        cylinderStart = ObjectToWorldNoScale(
+            float3(xStart + i * xSize, cylinderRadius, yStart)
+        );
+        cylinderEnd = ObjectToWorldNoScale(
+            float3(xStart + i * xSize, cylinderRadius, -yStart)
+        );
+        HitProperties hit = CylinderHit(rayOrigin, rayDirection, 
+            cylinderStart, cylinderEnd, cylinderRadius);
+        if (hit.isHit) {
+            tempDist = length(hit.hitPoint - rayOrigin);
+            if (tempDist < minHitDist) {
+                minHitDist = tempDist;
+                hitProp = hit;
+            }
+        }
+    }
+
+    return hitProp;
+}
 // Column柱状计算
 bool intersectRayAABB(
     float3 rayOrigin, float3 rayDir,

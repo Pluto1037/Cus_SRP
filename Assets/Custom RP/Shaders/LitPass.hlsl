@@ -148,6 +148,23 @@ float4 LitPassFragment (Varyings input) : SV_TARGET {
 		input.positionWS = gridHitProp.hitPoint;
 		input.normalWS = gridHitProp.hitNormal;
 	#endif
+	#if defined(_RAY_MARCHING_PARAL)
+		float3 rayOrigin = input.positionWS;		
+		float3 rayDirection = unity_OrthoParams.w ? 
+			normalize(mul((float3x3)UNITY_MATRIX_V, float3(0, 0, -1))) :
+			normalize(input.positionWS - _WorldSpaceCameraPos);
+		HitProperties gridHitProp = ParalHit(
+			rayOrigin, rayDirection, 
+			GetGridWidthHeight(config),
+			GetWidthHeightSegments(config), // 仅使用WidthSegments
+			GetCylinderRadius(config)
+		);
+		if(!gridHitProp.isHit)
+			discard;
+		// 启用RayMarching后，覆盖世界坐标和法线
+		input.positionWS = gridHitProp.hitPoint;
+		input.normalWS = gridHitProp.hitNormal;
+	#endif
 	#if defined(_RAY_MARCHING_ARC)
 		float3 rayOrigin = input.positionWS;		
 		float3 rayDirection = unity_OrthoParams.w ? 
