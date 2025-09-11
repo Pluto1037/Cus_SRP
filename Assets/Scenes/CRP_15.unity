@@ -5502,8 +5502,12 @@ MonoBehaviour:
     copyDepth: 1
     renderingLayerMask: -1
     maskLights: 0
+    renderScaleMode: 0
+    renderScale: 1
     overridePostFX: 0
     postFXSettings: {fileID: 0}
+    allowFXAA: 0
+    keepAlpha: 0
     finalBlendMode:
       source: 1
       destination: 0
@@ -5921,7 +5925,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 1.02e-43, y: 2.7e-44, z: 2.2027e-41, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
@@ -6373,7 +6377,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 4.5904e-41, y: 1e-45, z: 1.02e-43, w: 4e-45}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
@@ -6467,7 +6471,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 8.865e-42, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 2.8131955e+23, y: 6.9360258e+22, z: 4.7431265e+30, w: 1.5901432e+29}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0

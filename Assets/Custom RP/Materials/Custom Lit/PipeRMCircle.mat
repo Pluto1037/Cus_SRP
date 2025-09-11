@@ -80,7 +80,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _ArcRadius: 0.92
+    - _ArcRadius: 1
     - _BumpScale: 1
     - _Clipping: 0
     - _Cutoff: 0
@@ -114,6 +114,7 @@ Material:
     - _RayMarchingArc: 1
     - _RayMarchingColumn: 0
     - _RayMarchingGrid: 0
+    - _RayMarchingParal: 0
     - _RayMarchingQuadra: 0
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001

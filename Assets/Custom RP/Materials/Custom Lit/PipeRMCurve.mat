@@ -115,6 +115,7 @@ Material:
     - _RayMarchingArc: 0
     - _RayMarchingColumn: 0
     - _RayMarchingGrid: 0
+    - _RayMarchingParal: 0
     - _RayMarchingQuadra: 1
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001
@@ -137,6 +138,6 @@ Material:
     - _CylinderStart: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GridWidthHeight: {r: 0.471, g: 0.494, b: 0, a: 0}
-    - _QuadraticConfig: {r: 2.8, g: 1.09, b: -1.29, a: 0}
+    - _QuadraticConfig: {r: 2.1, g: 2.1, b: -2.54, a: 0}
     - _WidthHeightSegments: {r: 1, g: 1, b: Infinity, a: Infinity}
   m_BuildTextureStacks: []
