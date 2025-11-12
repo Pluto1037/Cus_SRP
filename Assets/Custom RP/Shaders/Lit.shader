@@ -148,6 +148,285 @@ Shader "Custom RP/Lit"
 			ENDHLSL
 		}
     }
+
+    // RayTracing材质
+    SubShader
+    {
+        HLSLINCLUDE
+		#include "../ShaderLibrary/Common.hlsl"
+		#include "LitInput.hlsl"
+		ENDHLSL
+        Pass
+        {
+            Name "RayTracing"
+            Tags { 
+                "LightMode" = "RayTracing" 
+            }
+
+            HLSLPROGRAM
+
+            #pragma raytracing test
+
+            #pragma shader_feature _RAY_MARCHING // 是否RAY MARCHING材质
+            #pragma shader_feature _RAY_MARCHING_GRID // 网格状的圆柱RM
+            #pragma shader_feature _RAY_MARCHING_PARAL // 一组平行的圆柱RM
+            #pragma shader_feature _RAY_MARCHING_ARC // 圆弧RM
+            #pragma shader_feature _RAY_MARCHING_COLUMN // 柱状RM
+            #pragma shader_feature _RAY_MARCHING_QUADRA // 二次曲线RM
+
+            #include "../ShaderLibrary/RTCommon.hlsl"
+            #include "../ShaderLibrary/RayMarching.hlsl"
+            #include "../ShaderLibrary/RMNewtonian.hlsl"
+
+            // 用于BRDF着色
+            #include "../ShaderLibrary/Surface.hlsl"
+            #include "../ShaderLibrary/Shadows.hlsl"
+            #include "../ShaderLibrary/Light.hlsl" 
+            #include "../ShaderLibrary/BRDF.hlsl"
+
+            struct IntersectionVertex
+            {
+                // Object space normal of the vertex
+                float3 normalOS;
+            };
+
+            void FetchIntersectionVertex(uint vertexIndex, out IntersectionVertex outVertex)
+            {
+                outVertex.normalOS = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeNormal);
+            }
+
+            inline float3 BackgroundColor(float3 direction)
+            {
+                float t = 0.5f * (direction.y + 1.0f); 
+                return (1.0f - t) * float3(1.0f, 1.0f, 1.0f) + t * float3(0.5f, 0.7f, 1.0f);
+            }
+
+            [shader("closesthit")]
+            void ClosestHitShader(inout RayIntersection rayIntersection : SV_RayPayload, AttributeData attributeData : SV_IntersectionAttributes)
+            {
+                // Fetch the indices of the currentr triangle
+                uint3 triangleIndices = UnityRayTracingFetchTriangleIndices(PrimitiveIndex());
+
+                // Fetch the 3 vertices
+                IntersectionVertex v0, v1, v2;
+                FetchIntersectionVertex(triangleIndices.x, v0);
+                FetchIntersectionVertex(triangleIndices.y, v1);
+                FetchIntersectionVertex(triangleIndices.z, v2);
+
+                // Compute the full barycentric coordinates
+                float3 barycentricCoordinates = float3(1.0 - attributeData.barycentrics.x - attributeData.barycentrics.y, attributeData.barycentrics.x, attributeData.barycentrics.y);
+
+                float3 normalOS = INTERPOLATE_RAYTRACING_ATTRIBUTE(v0.normalOS, v1.normalOS, v2.normalOS, barycentricCoordinates);
+                float3x3 objectToWorld = (float3x3)ObjectToWorld3x4();
+                float3 normalWS = normalize(mul(objectToWorld, normalOS));
+
+                // rayIntersection.color = float4(0.5f * (normalWS + 1.0f), 0);
+                
+                // 光源参数
+                float3 origin = WorldRayOrigin();
+                float3 direction = WorldRayDirection();
+                float t = RayTCurrent();
+                float3 positionWS = origin + direction * t;
+
+                // 光线前进时累积的结果，记录在intersection的结果中
+                // float4 color = INPUT_PROP(_BaseColor);
+                float4 color = float4(BackgroundColor(direction), 1.0f);
+
+                if (rayIntersection.remainingDepth > 0)
+                {
+                    // 透过当前表面的光线信息
+                    RayDesc rayDescriptor;
+                    rayDescriptor.Origin = positionWS;
+                    rayDescriptor.Direction = direction;
+                    rayDescriptor.TMin = 1e-5f;
+                    rayDescriptor.TMax = _CameraFarDistance;
+                    // 下一个迭代的光线信息
+                    RayIntersection reflectionRayIntersection;
+                    reflectionRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
+                    reflectionRayIntersection.color = INPUT_PROP(_BaseColor); // 初始颜色为材质颜色
+
+                    // 求交测试，通过则取消下一步递归计算，否则透过当前表面
+                    #if defined(_RAY_MARCHING)
+                        HitProperties cylinderHitProp = IntersectCylinderNumerical(
+                            origin, direction, 
+                            TransformObjectToWorld(INPUT_PROP(_CylinderStart)), 
+                            TransformObjectToWorld(INPUT_PROP(_CylinderEnd)), 
+                            INPUT_PROP(_CylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+                    #if defined(_RAY_MARCHING_GRID)
+                        HitProperties cylinderHitProp = GridHit(
+                            origin, direction, 
+                            INPUT_PROP(_GridWidthHeight).xy,
+                            INPUT_PROP(_WidthHeightSegments).xy, 
+                            INPUT_PROP(_CylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+                    #if defined(_RAY_MARCHING_PARAL)
+                        HitProperties cylinderHitProp = ParalHit(
+                            origin, direction, 
+                            INPUT_PROP(_GridWidthHeight),
+                            INPUT_PROP(_WidthHeightSegments).xy, // 仅使用WidthSegments
+                            INPUT_PROP(_CylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+                    #if defined(_RAY_MARCHING_ARC)
+                        HitProperties cylinderHitProp = PhantomTestHit(
+                            INPUT_PROP(_QuadraticConfig),
+                            origin, direction, 
+                            INPUT_PROP(_ArcRadius),
+                            INPUT_PROP(_CylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+                    #if defined(_RAY_MARCHING_COLUMN)
+                        HitProperties cylinderHitProp = ColumnHit(
+                            origin, direction, 
+                            INPUT_PROP(_ColumnLengthWidthHeight), 
+                            INPUT_PROP(_VerticalSegments),
+                            INPUT_PROP(_CylinderRadius),
+                            INPUT_PROP(_SecondaryCylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+                    #if defined(_RAY_MARCHING_QUADRA)
+                        HitProperties cylinderHitProp = PhantomTestHit(
+                            INPUT_PROP(_QuadraticConfig),
+                            origin, direction, 
+                            1.0f,
+                            INPUT_PROP(_CylinderRadius)
+                        );
+                        if(!cylinderHitProp.isHit){
+                            // 未命中覆盖为背景颜色
+                            reflectionRayIntersection.color = float4(BackgroundColor(direction), 1.0f);
+                            TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+                        }
+                        else{
+                            // 构建BRDF表面
+                            Surface surface;
+                            surface.color = INPUT_PROP(_BaseColor).rgb;
+                            surface.alpha = INPUT_PROP(_BaseColor).a;                           
+                            surface.metallic = INPUT_PROP(_Metallic);
+                            surface.smoothness = INPUT_PROP(_Smoothness);
+                            surface.position = cylinderHitProp.hitPoint;
+                            surface.viewDirection = -direction;
+                            surface.normal = cylinderHitProp.hitNormal;
+                            BRDF brdf = GetBRDF(surface);
+
+                            // 利用BRDF着色覆盖结果
+                            reflectionRayIntersection.color = float4(RTDirectBRDF(surface, brdf), 1.0f);
+                        }
+                    #endif
+
+                    color = reflectionRayIntersection.color;
+                }
+
+                // 最终的颜色
+                rayIntersection.color = color;
+            }
+
+            ENDHLSL
+        }
+    }
+
     // 指示Unity使用CustomShaderGUI类的实例来绘制Lit着色器的检查器
     CustomEditor "CustomShaderGUI" 
 }

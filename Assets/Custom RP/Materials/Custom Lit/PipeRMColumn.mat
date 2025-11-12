@@ -15,14 +15,13 @@ Material:
   - _RAY_MARCHING_COLUMN
   - _RECEIVE_SHADOWS
   m_InvalidKeywords:
-  - _SHADOWS_OFF
+  - _SHADOWS_ON
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses:
-  - SHADOWCASTER
+  disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -115,11 +114,12 @@ Material:
     - _RayMarchingArc: 0
     - _RayMarchingColumn: 1
     - _RayMarchingGrid: 0
+    - _RayMarchingParal: 0
     - _RayMarchingQuadra: 0
     - _ReceiveShadows: 1
     - _SURF_DIST: 0.001
     - _SecondaryCylinderRadius: 0.05
-    - _Shadows: 3
+    - _Shadows: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -131,7 +131,7 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0.9433962, g: 0.90334636, b: 0.90334636, a: 1}
     - _Color: {r: 0.9433962, g: 0.90334636, b: 0.90334636, a: 1}
-    - _ColumnLengthWidthHeight: {r: 1.67, g: 1.67, b: 20, a: 0}
+    - _ColumnLengthWidthHeight: {r: 1.7, g: 1.7, b: 20, a: 0}
     - _ColumnWidthHeightSegments: {r: 0, g: 0, b: 1, a: 0}
     - _CylinderEnd: {r: 0, g: 0, b: 0, a: 0}
     - _CylinderStart: {r: 0, g: 0, b: 0, a: 0}

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
 [CreateAssetMenu(menuName = "Rendering/Custom Render Pipeline Asset")]
 public partial class CustomRenderPipelineAsset : RenderPipelineAsset
@@ -16,6 +17,11 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset
             subpixelBlending = 0.75f
         }
     };
+
+    [SerializeField]
+    bool useRayTracing = false;
+    [SerializeField]
+    RayTracingShader rayTracingShader = default;
 
     [SerializeField]
     bool
@@ -42,7 +48,7 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset
         return new CustomRenderPipeline(
             cameraBuffer, useDynamicBatching, useGPUInstancing, useSRPBatcher,
             useLightsPerObject, shadows, postFXSettings, (int)colorLUTResolution,
-            cameraRendererShader
+            cameraRendererShader, useRayTracing, rayTracingShader
         );
     }
 }

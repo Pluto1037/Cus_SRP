@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
 public partial class CustomRenderPipeline : RenderPipeline
 {
@@ -11,11 +12,17 @@ public partial class CustomRenderPipeline : RenderPipeline
     PostFXSettings postFXSettings;
     int colorLUTResolution;
 
+    // 光追管线开关
+    bool useRayTracing;
+    // 光线追踪使用的着色器代码
+    RayTracingShader rayTracingShader;
+
     public CustomRenderPipeline(
         CameraBufferSettings cameraBufferSettings,
         bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
         bool useLightsPerObject, ShadowSettings shadowSettings,
-        PostFXSettings postFXSettings, int colorLUTResolution, Shader cameraRendererShader
+        PostFXSettings postFXSettings, int colorLUTResolution, Shader cameraRendererShader,
+        bool useRayTracing, RayTracingShader rayTracingShader
     )
     {
         this.cameraBufferSettings = cameraBufferSettings;
@@ -25,6 +32,8 @@ public partial class CustomRenderPipeline : RenderPipeline
         this.shadowSettings = shadowSettings;
         this.postFXSettings = postFXSettings;
         this.colorLUTResolution = colorLUTResolution;
+        this.useRayTracing = useRayTracing;
+        this.rayTracingShader = rayTracingShader;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
         GraphicsSettings.lightsUseLinearIntensity = true; // 将光照强度转换为线性空间
         renderer = new CameraRenderer(cameraRendererShader); // 分配着色器至相机渲染器
@@ -46,7 +55,7 @@ public partial class CustomRenderPipeline : RenderPipeline
             renderer.Render(
                 context, cameras[i], cameraBufferSettings,
                 useDynamicBatching, useGPUInstancing, useLightsPerObject,
-                shadowSettings, postFXSettings, colorLUTResolution
+                shadowSettings, postFXSettings, colorLUTResolution, useRayTracing, rayTracingShader
             );
         }
     }

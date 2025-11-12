@@ -845,7 +845,7 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
     int sideNum = lerp(2, 3, sign(sidesIn ^ sidesOut)); // 0 -> 2 >1 -> 3 //如果sidesIn == sidesOut，那么需要测试的面的个数为2个，否则为3个
 
     if (sidesIn == 0 || sidesIn == 15){                 //内部4个点测试结果为1111和0000时的情况
-        [unroll]
+        // [unroll]
         for (i = 0; i < 4; ++i) {
             HitProperties hit = PlaneCylinderHit(rayOrigin, rayDirection, tNear, tFar, i, expandRadius, halfCHeight, halfCLength, halfCWidth, vertStep, secRadius, verticalSeg);
             if (hit.isHit) {
@@ -856,7 +856,7 @@ HitProperties ColumnHit(float3 rayOrigin, float3 rayDirection,
         }
     }
     else {
-        [unroll]
+        // [unroll]
         for (i = 0; i < sideNum; ++i) {
             int side = mappingSide[sidesInOut][i];
             HitProperties hit = PlaneCylinderHit(rayOrigin, rayDirection, tNear, tFar, side, expandRadius, halfCHeight, halfCLength, halfCWidth, vertStep, secRadius, verticalSeg);

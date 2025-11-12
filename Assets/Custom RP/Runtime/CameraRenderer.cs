@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
 public partial class CameraRenderer
 {
@@ -17,6 +18,16 @@ public partial class CameraRenderer
         sourceTextureId = Shader.PropertyToID("_SourceTexture"),
         srcBlendId = Shader.PropertyToID("_CameraSrcBlend"),
         dstBlendId = Shader.PropertyToID("_CameraDstBlend");
+
+    static int 
+        s_OutputTarget = Shader.PropertyToID("_OutputTarget"),
+        s_OutputTargetSize = Shader.PropertyToID("_OutputTargetSize"),
+        s_WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos"),
+        s_InvCameraViewProj = Shader.PropertyToID("_InvCameraViewProj"),
+        s_CameraFarDistance = Shader.PropertyToID("_CameraFarDistance"),
+        s_AccelerationStructure = Shader.PropertyToID("_AccelerationStructure");
+
+    RayTracingAccelerationStructure accelerationStructure;
 
     const string bufferName = "Render Camera";
     CommandBuffer buffer = new CommandBuffer
@@ -100,11 +111,65 @@ public partial class CameraRenderer
         CameraBufferSettings bufferSettings,
         bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
         ShadowSettings shadowSettings, PostFXSettings postFXSettings,
-        int colorLUTResolution
+        int colorLUTResolution, bool useRayTracing, RayTracingShader rayTracingShader
     )
     {
         this.context = context;
         this.camera = camera;
+
+        // 开启光追后使用新的管线流程
+        if (useRayTracing)
+        {
+            var outputTarget = RTHandles.Alloc(
+                camera.pixelWidth, camera.pixelHeight,
+                colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                enableRandomWrite: true,
+                autoGenerateMips: false,
+                name: bufferName
+            );
+
+            // Shader.SetGlobalVector(s_WorldSpaceCameraPos, camera.transform.position);
+            var projMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+            var viewMatrix = camera.worldToCameraMatrix;
+            var viewProjMatrix = projMatrix * viewMatrix;
+            var invViewProjMatrix = Matrix4x4.Inverse(viewProjMatrix);
+            Shader.SetGlobalMatrix(s_InvCameraViewProj, invViewProjMatrix);
+            Shader.SetGlobalFloat(s_CameraFarDistance, camera.farClipPlane);
+
+            accelerationStructure = new RayTracingAccelerationStructure();
+            foreach (Renderer r in Object.FindObjectsOfType<Renderer>())
+            {
+                // 可以根据需要过滤：r.gameObject.layer、r.shadowCastingMode 等
+                if (r.gameObject.activeInHierarchy && r.enabled)
+                    accelerationStructure.AddInstance(r);
+            }
+            accelerationStructure.Build();
+
+            try
+            {
+                using (new ProfilingScope(buffer, new ProfilingSampler("RayTracing")))
+                {
+                    buffer.SetRayTracingShaderPass(rayTracingShader, "RayTracing");
+                    buffer.SetRayTracingAccelerationStructure(rayTracingShader, s_AccelerationStructure, accelerationStructure);
+                    buffer.SetRayTracingTextureParam(rayTracingShader, Shader.PropertyToID("_OutputTarget"), outputTarget);
+                    buffer.DispatchRays(rayTracingShader, "CreateSphereRayGenShader", (uint) outputTarget.rt.width, (uint) outputTarget.rt.height, 1, camera);
+                }
+                context.ExecuteCommandBuffer(buffer);
+
+                using (new ProfilingScope(buffer, new ProfilingSampler("FinalBlit")))
+                {
+                    buffer.Blit(outputTarget, BuiltinRenderTextureType.CameraTarget, Vector2.one, Vector2.zero);
+                }
+                context.ExecuteCommandBuffer(buffer);
+            }
+            finally
+            {
+                context.Submit();
+                buffer.Clear();
+            }
+
+            return;
+        }
 
         // 若当前相机使用了自定义设置，则使用自定义设置，否则使用默认设置
         var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();

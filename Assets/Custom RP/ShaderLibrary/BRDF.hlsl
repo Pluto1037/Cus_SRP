@@ -50,6 +50,21 @@ float SpecularStrength (Surface surface, BRDF brdf, Light light) {
 	return r2 / (d2 * max(0.1, lh2) * normalization);
 }
 
+// 提供一个用于RT管线的轻量计算BRDF的版本
+float3 RTDirectBRDF (Surface surface, BRDF brdf) {
+	// float3 lightDirection = _WorldSpaceLightPos0.xyz; // 方向光主光源静态变量
+	float3 lightDirection = normalize(float3(1.0f, 1.0f, 1.0f)); // 使用静态值进行测试
+	float3 lightColor = float3(1.0f, 1.0f, 1.0f); // 默认白光
+	float3 h = SafeNormalize(lightDirection + surface.viewDirection);
+	float nh2 = Square(saturate(dot(surface.normal, h)));
+	float lh2 = Square(saturate(dot(lightDirection, h)));
+	float r2 = Square(brdf.roughness);
+	float d2 = Square(nh2 * (r2 - 1.0) + 1.00001);
+	float normalization = brdf.roughness * 4.0 + 2.0; // n = 4r + 2
+	float specularStrength = r2 / (d2 * max(0.1, lh2) * normalization);
+	return specularStrength * brdf.specular * lightColor + brdf.diffuse * lightColor;
+}
+
 // 平行光的brdf高光着色，建模为点光源了
 float3 DirectBRDF (Surface surface, BRDF brdf, Light light) {
 	return SpecularStrength(surface, brdf, light) * brdf.specular + brdf.diffuse;
